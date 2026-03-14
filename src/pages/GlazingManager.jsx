@@ -122,7 +122,22 @@ function GlazingForm({ isOpen, onSave, onCancel, glazing }) {
             </div>
             {profiles.length > 0 && (
               <div>
-                <Label className="text-slate-700 dark:text-slate-300 mb-2 block">Profile Compatibile</Label>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-slate-700 dark:text-slate-300">Profile Compatibile</Label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const allIds = profiles.map(p => p.id);
+                      const allSelected = allIds.every(id => (formData.compatible_profiles || []).includes(id));
+                      handleChange('compatible_profiles', allSelected ? [] : allIds);
+                    }}
+                    className="text-xs text-green-600 hover:text-green-800 font-medium underline"
+                  >
+                    {profiles.every(p => (formData.compatible_profiles || []).includes(p.id))
+                      ? 'Deselectează Toate'
+                      : 'Selectează Toate'}
+                  </button>
+                </div>
                 <div className="border border-slate-200 dark:border-slate-700 rounded-md p-3 max-h-40 overflow-y-auto space-y-2">
                   {profiles.map(profile => (
                     <label key={profile.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-1 rounded">
@@ -132,7 +147,10 @@ function GlazingForm({ isOpen, onSave, onCancel, glazing }) {
                         onChange={() => toggleProfile(profile.id)}
                         className="w-4 h-4 accent-green-600"
                       />
-                      <span className="text-sm text-slate-700 dark:text-slate-300">{profile.name}</span>
+                      <span className="text-sm text-slate-700 dark:text-slate-300">
+                        {profile.name}
+                        {profile.type && <span className="ml-1 text-xs text-slate-400">({profile.type})</span>}
+                      </span>
                     </label>
                   ))}
                 </div>
