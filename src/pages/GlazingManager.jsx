@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { GlazingType } from '@/entities/GlazingType';
 import { Profile } from '@/entities/Profile';
+import { Material } from '@/entities/Material';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -48,9 +49,12 @@ function GlazingForm({ isOpen, onSave, onCancel, glazing }) {
   const [formData, setFormData] = useState(glazing || defaultForm);
   const [isLoading, setIsLoading] = useState(false);
   const [profiles, setProfiles] = useState([]);
+  const [materials, setMaterials] = useState([]);
+  const [materialFilter, setMaterialFilter] = useState('');
 
   useEffect(() => {
     Profile.filter({}).then(data => setProfiles(data || [])).catch(() => setProfiles([]));
+    Material.filter({}).then(data => setMaterials(data || [])).catch(() => setMaterials([]));
   }, []);
 
   useEffect(() => {
@@ -68,6 +72,10 @@ function GlazingForm({ isOpen, onSave, onCancel, glazing }) {
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+
+  const filteredProfiles = materialFilter
+    ? profiles.filter(p => p.material_id === materialFilter || p.material === materialFilter)
+    : profiles;
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -122,37 +130,59 @@ function GlazingForm({ isOpen, onSave, onCancel, glazing }) {
             </div>
             {profiles.length > 0 && (
               <div>
+                {/* Filtru rapid dupa material */}
+                <div className="mb-2">
+                  <Label className="text-slate-700 dark:text-slate-300 text-xs mb-1 block">Filtreaza dupa material</Label>
+                  <select
+                    value={materialFilter}
+                    onChange={e => setMaterialFilter(e.target.value)}
+                    className="w-full text-sm border border-slate-300 dark:border-slate-600 rounded-md px-2 py-1.5 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                  >
+                    <option value="">-- Toate materialele --</option>
+                    {materials.map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                </div>
                 <div className="flex items-center justify-between mb-2">
                   <Label className="text-slate-700 dark:text-slate-300">Profile Compatibile</Label>
                   <button
                     type="button"
                     onClick={() => {
-                      const allIds = profiles.map(p => p.id);
-                      const allSelected = allIds.every(id => (formData.compatible_profiles || []).includes(id));
-                      handleChange('compatible_profiles', allSelected ? [] : allIds);
+                      const filteredIds = filteredProfiles.map(p => p.id);
+                      const allSelected = filteredIds.every(id => (formData.compatible_profiles || []).includes(id));
+                      const current = formData.compatible_profiles || [];
+                      if (allSelected) {
+                        handleChange('compatible_profiles', current.filter(id => !filteredIds.includes(id)));
+                      } else {
+                        handleChange('compatible_profiles', [...new Set([...current, ...filteredIds])]);
+                      }
                     }}
                     className="text-xs text-green-600 hover:text-green-800 font-medium underline"
                   >
-                    {profiles.every(p => (formData.compatible_profiles || []).includes(p.id))
+                    {filteredProfiles.length > 0 && filteredProfiles.every(p => (formData.compatible_profiles || []).includes(p.id))
                       ? 'Deselectează Toate'
                       : 'Selectează Toate'}
                   </button>
                 </div>
                 <div className="border border-slate-200 dark:border-slate-700 rounded-md p-3 max-h-40 overflow-y-auto space-y-2">
-                  {profiles.map(profile => (
-                    <label key={profile.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-1 rounded">
-                      <input
-                        type="checkbox"
-                        checked={(formData.compatible_profiles || []).includes(profile.id)}
-                        onChange={() => toggleProfile(profile.id)}
-                        className="w-4 h-4 accent-green-600"
-                      />
-                      <span className="text-sm text-slate-700 dark:text-slate-300">
-                        {profile.name}
-                        {profile.type && <span className="ml-1 text-xs text-slate-400">({profile.type})</span>}
-                      </span>
-                    </label>
-                  ))}
+                  {filteredProfiles.length === 0
+                    ? <p className="text-xs text-slate-400">Niciun profil pentru materialul selectat.</p>
+                    : filteredProfiles.map(profile => (
+                      <label key={profile.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-1 rounded">
+                        <input
+                          type="checkbox"
+                          checked={(formData.compatible_profiles || []).includes(profile.id)}
+                          onChange={() => toggleProfile(profile.id)}
+                          className="w-4 h-4 accent-green-600"
+                        />
+                        <span className="text-sm text-slate-700 dark:text-slate-300">
+                          {profile.name}
+                          {profile.type && <span className="ml-1 text-xs text-slate-400">({profile.type})</span>}
+                        </span>
+                      </label>
+                    ))
+                  }
                 </div>
               </div>
             )}
