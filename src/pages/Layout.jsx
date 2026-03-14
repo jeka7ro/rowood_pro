@@ -1,9 +1,10 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
+import { HomePageContent } from '@/entities/HomePageContent';
+
 import { useAuth } from "@/lib/AuthContext";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { base44 } from '@/api/base44Client';
 import ErrorBoundary from "@/components/common/ErrorBoundary";
 import {
   Home, Settings, Package, Palette, Layers, ShoppingCart, Users,
@@ -73,9 +74,9 @@ function LayoutContent({ children, currentPageName }) {
   useEffect(() => {
     const fetchFooterContent = async () => {
       try {
-        let content = await base44.entities.HomePageContent.filter({ language_code: currentLanguage });
+        let content = await HomePageContent.filter({ language_code: currentLanguage });
         if (!content || content.length === 0) {
-          content = await base44.entities.HomePageContent.filter({ language_code: 'ro' });
+          content = await HomePageContent.filter({ language_code: 'ro' });
         }
         if (content && content.length > 0) {
           setFooterContent(content[0]);
