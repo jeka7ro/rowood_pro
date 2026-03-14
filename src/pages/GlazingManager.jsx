@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { GlazingType } from '@/entities/GlazingType';
 import { Profile } from '@/entities/Profile';
 import { Material } from '@/entities/Material';
@@ -255,10 +255,17 @@ function GlazingForm({ isOpen, onSave, onCancel, glazing }) {
 
 export default function GlazingManager() {
   const [glazingTypes, setGlazingTypes] = useState([]);
+  const [allProfiles, setAllProfiles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingGlazing, setEditingGlazing] = useState(null);
   const [glazingToDelete, setGlazingToDelete] = useState(null);
+
+  const profileNameMap = useMemo(() => {
+    const m = {};
+    allProfiles.forEach(p => { m[p.id] = p.name; });
+    return m;
+  }, [allProfiles]);
 
   const fetchGlazingTypes = useCallback(async () => {
     setIsLoading(true);
@@ -274,6 +281,7 @@ export default function GlazingManager() {
 
   useEffect(() => {
     fetchGlazingTypes();
+    Profile.filter({}).then(data => setAllProfiles(data || [])).catch(() => setAllProfiles([]));
   }, [fetchGlazingTypes]);
 
   const handleSave = async (formData) => {
@@ -331,6 +339,7 @@ export default function GlazingManager() {
               <TableHead className="text-slate-700 dark:text-slate-300">Valoare U</TableHead>
               <TableHead className="text-slate-700 dark:text-slate-300">Preț/m²</TableHead>
               <TableHead className="text-slate-700 dark:text-slate-300">Detalii</TableHead>
+              <TableHead className="text-slate-700 dark:text-slate-300">Profile Compatibile</TableHead>
               <TableHead className="text-slate-700 dark:text-slate-300">Status</TableHead>
               <TableHead className="text-right text-slate-700 dark:text-slate-300">Acțiuni</TableHead>
             </TableRow>
@@ -361,6 +370,19 @@ export default function GlazingManager() {
                       <span className="text-slate-400 dark:text-slate-500 text-xs">—</span>
                     )}
                   </TableCell>
+                  <TableCell className="text-slate-600 dark:text-slate-400 max-w-[180px]">
+                    {Array.isArray(glazing.compatible_profiles) && glazing.compatible_profiles.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {glazing.compatible_profiles.map((pid) => (
+                          <Badge key={pid} variant="outline" className="text-xs bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-200">
+                            {profileNameMap[pid] || pid}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-slate-400 text-xs">—</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                       <Badge variant={glazing.is_active ? 'default' : 'destructive'} className={glazing.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
                         {glazing.is_active ? 'Activ' : 'Inactiv'}
@@ -377,7 +399,7 @@ export default function GlazingManager() {
                 </TableRow>
               ))
             ) : (
-                <TableRow><TableCell colSpan={8} className="text-center p-8 text-slate-500 dark:text-slate-400">Nu s-au găsit tipuri de sticlă.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center p-8 text-slate-500 dark:text-slate-400">Nu s-au găsit tipuri de sticlă.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
