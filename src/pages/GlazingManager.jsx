@@ -74,7 +74,7 @@ function GlazingForm({ isOpen, onSave, onCancel, glazing }) {
   };
 
   const filteredProfiles = materialFilter
-    ? profiles.filter(p => p.material_id === materialFilter || p.material === materialFilter)
+    ? profiles.filter(p => Array.isArray(p.compatible_materials) && p.compatible_materials.includes(materialFilter))
     : profiles;
 
   const handleSave = async (e) => {
