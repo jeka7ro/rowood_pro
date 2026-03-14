@@ -7,8 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 
-const LOCAL_ADMIN_EMAIL = import.meta.env.VITE_LOCAL_ADMIN_EMAIL || 'jeka7ro@gmail.com';
-const LOCAL_ADMIN_PASSWORD = import.meta.env.VITE_LOCAL_ADMIN_PASSWORD || '15Martie!';
+const ADMIN_USERS = [
+  { email: 'jeka7ro@gmail.com', password: '15Martie!', full_name: 'Admin RoWood' },
+  { email: 'rowoodbv@gmail.com', password: 'Rowood123!', full_name: 'Admin RoWood BV' },
+];
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -24,11 +26,12 @@ export default function Login() {
 
         await new Promise(r => setTimeout(r, 300));
 
-        if (email === LOCAL_ADMIN_EMAIL && password === LOCAL_ADMIN_PASSWORD) {
+        const matchedUser = ADMIN_USERS.find(u => u.email === email && u.password === password);
+        if (matchedUser) {
             const session = {
                 id: 'local_admin_id',
-                email: LOCAL_ADMIN_EMAIL,
-                full_name: 'Admin RoWood',
+                email: matchedUser.email,
+                full_name: matchedUser.full_name,
                 role: 'admin',
                 isAuthenticated: true,
                 loggedInAt: Date.now()
