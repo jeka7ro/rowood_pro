@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 
-const LOCAL_ADMIN_EMAIL = import.meta.env.VITE_LOCAL_ADMIN_EMAIL || 'admin@rowood.ro';
-const LOCAL_ADMIN_PASSWORD = import.meta.env.VITE_LOCAL_ADMIN_PASSWORD || 'rowood2024';
+const LOCAL_ADMIN_EMAIL = import.meta.env.VITE_LOCAL_ADMIN_EMAIL || 'jeka7ro@gmail.com';
+const LOCAL_ADMIN_PASSWORD = import.meta.env.VITE_LOCAL_ADMIN_PASSWORD || '15Martie!';
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -30,9 +30,10 @@ export default function Login() {
                 email: LOCAL_ADMIN_EMAIL,
                 full_name: 'Admin RoWood',
                 role: 'admin',
+                isAuthenticated: true,
                 loggedInAt: Date.now()
             };
-            localStorage.setItem('local_auth_session', JSON.stringify(session));
+            localStorage.setItem('rowood_session', JSON.stringify(session));
 
             const fromUrl = searchParams.get('from_url') || '/';
             try {
