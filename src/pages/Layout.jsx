@@ -47,7 +47,7 @@ function LayoutContent({ children, currentPageName }) {
       const checkAdminAuth = async () => {
         try {
           // Verificare autentificare locală (fără base44)
-          const sessionRaw = localStorage.getItem('rowood_session');
+          const sessionRaw = localStorage.getItem('local_auth_session');
           const session = sessionRaw ? JSON.parse(sessionRaw) : null;
           if (!session || !session.isAuthenticated) {
             window.location.href = createPageUrl('Login');
@@ -218,7 +218,7 @@ function LayoutContent({ children, currentPageName }) {
                     variant="destructive"
                     onClick={() => {
                       // Logout local
-                      localStorage.removeItem('rowood_session');
+                      localStorage.removeItem('local_auth_session');
                       window.location.href = createPageUrl('Login');
                     }}
                     className="w-full"

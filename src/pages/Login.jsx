@@ -33,7 +33,7 @@ export default function Login() {
                 isAuthenticated: true,
                 loggedInAt: Date.now()
             };
-            localStorage.setItem('rowood_session', JSON.stringify(session));
+            localStorage.setItem('local_auth_session', JSON.stringify(session));
 
             const fromUrl = searchParams.get('from_url') || '/';
             try {
