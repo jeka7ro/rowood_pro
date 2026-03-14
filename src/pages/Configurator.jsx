@@ -42,6 +42,7 @@ import ConfigurationSummary from '../components/configurator/ConfigurationSummar
 import TransportInstallationSelector from '../components/configurator/TransportInstallationSelector';
 import MechanismPresets from '../components/configurator/MechanismPresets';
 import ColorStep from "../components/configurator/ColorStep";
+import GlazingSelector from '../components/configurator/GlazingSelector';
 import ErrorBoundary from "../components/common/ErrorBoundary";
 
 // Lazy load hexFromRal to avoid import-time errors
@@ -129,6 +130,7 @@ export default function ConfiguratorPage() {
     material_id: null,
     sub_material_id: null,
     profile_id: null,
+    glazing_id: null,
     color_id: null,
     custom_ral_code: '',
     custom_hex_code: '',
@@ -154,6 +156,7 @@ export default function ConfiguratorPage() {
     { id: 'product', name: 'Produs', icon: Package, required: true },
     { id: 'material', name: 'Material', icon: Palette, required: true },
     { id: 'profile', name: 'Profil', icon: Layers, required: true },
+    { id: 'glazing', name: 'Sticlă', icon: Layers, required: false },
     { id: 'color', name: 'Culoare', icon: Palette, required: true },
     { id: 'mechanism', name: 'Mecanisme', icon: Settings, required: true },
     { id: 'dimensions', name: 'Dimensiuni', icon: Ruler, required: true },
@@ -271,11 +274,22 @@ export default function ConfiguratorPage() {
     fetchGlazing();
   }, []);
 
-  // Get selected glazing based on profile's default
+  // Glazing types filtrate după profilul selectat (compatible_profiles)
+  const compatibleGlazingTypes = useMemo(() => {
+    if (!config.profile_id || glazingTypes.length === 0) return glazingTypes.filter(g => g.is_active !== false);
+    return glazingTypes.filter(g =>
+      g.is_active !== false &&
+      Array.isArray(g.compatible_profiles) &&
+      g.compatible_profiles.includes(config.profile_id)
+    );
+  }, [glazingTypes, config.profile_id]);
+
+  // Get selected glazing based on config.glazing_id (user pick) or profile's default
   const selectedGlazing = useMemo(() => {
+    if (config.glazing_id) return glazingTypes.find(g => g.id === config.glazing_id) || null;
     if (!selectedProfile?.default_glazing_id) return null;
     return glazingTypes.find(g => g.id === selectedProfile.default_glazing_id) || null;
-  }, [selectedProfile, glazingTypes]);
+  }, [selectedProfile, glazingTypes, config.glazing_id]);
 
   const priceDetails = useMemo(() => {
     const product = selectedProduct;
@@ -500,9 +514,10 @@ export default function ConfiguratorPage() {
       }
 
       if (key === 'profile_id') {
-        // Când se selectează profilul, trecem la culoare
-        setCurrentStep(3);
-        setActiveTab('color');
+        // Resetează sticla și trece la pasul Sticlă
+        newState.glazing_id = null;
+        setCurrentStep(3); // pasul 'glazing'
+        setActiveTab('glazing');
       }
 
       if (key === 'sash_configs') {
@@ -607,12 +622,15 @@ export default function ConfiguratorPage() {
       // Profile - need product + material
       if (config.product_id && config.material_id) canGoToStep = true;
     } else if (clampedIndex === 3) {
-      // Color - need product + material + profile
+      // Glazing - need product + material + profile (optional step, always accessible if profile done)
       if (config.product_id && config.material_id && config.profile_id) canGoToStep = true;
     } else if (clampedIndex === 4) {
+      // Color - need product + material + profile
+      if (config.product_id && config.material_id && config.profile_id) canGoToStep = true;
+    } else if (clampedIndex === 5) {
       // Mechanism - need color
       if (config.product_id && config.material_id && config.profile_id && isColorSelected) canGoToStep = true;
-    } else if (clampedIndex === 5) {
+    } else if (clampedIndex === 6) {
       // Dimensions - need mechanism
       if (config.product_id && config.material_id && config.profile_id && isColorSelected && config.sash_configs.length > 0) canGoToStep = true;
     } else {
@@ -642,9 +660,10 @@ export default function ConfiguratorPage() {
 
     if (nextStep === 1) return !!config.product_id; // Material
     if (nextStep === 2) return !!(config.product_id && config.material_id); // Profile
-    if (nextStep === 3) return !!(config.product_id && config.material_id && config.profile_id); // Color
-    if (nextStep === 4) return !!(config.product_id && config.material_id && config.profile_id && isColorSelected); // Mechanism
-    if (nextStep === 5) return !!(config.product_id && config.material_id && config.profile_id && isColorSelected && config.sash_configs.length > 0); // Dimensions
+    if (nextStep === 3) return !!(config.product_id && config.material_id && config.profile_id); // Glazing (optional)
+    if (nextStep === 4) return !!(config.product_id && config.material_id && config.profile_id); // Color
+    if (nextStep === 5) return !!(config.product_id && config.material_id && config.profile_id && isColorSelected); // Mechanism
+    if (nextStep === 6) return !!(config.product_id && config.material_id && config.profile_id && isColorSelected && config.sash_configs.length > 0); // Dimensions
     
     return true; // Accessories, services, summary are optional
   }, [config, currentStep, configSteps.length]);
@@ -1038,6 +1057,34 @@ export default function ConfiguratorPage() {
                         />
                       </ErrorBoundary>
                     }
+
+                    {activeTab === 'glazing' && config.profile_id && (
+                      <ErrorBoundary label="step:glazing">
+                        <div className="space-y-4">
+                          {compatibleGlazingTypes.length === 0 ? (
+                            <div className="p-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-2xl border border-yellow-200 text-yellow-800 dark:text-yellow-200 text-center">
+                              <p className="font-semibold mb-1">Nicio sticlă compatibilă cu profilul selectat</p>
+                              <p className="text-sm">Adaugă tipuri de sticlă cu profilul selectat ca profil compatibil în GlazingManager.</p>
+                            </div>
+                          ) : (
+                            <>
+                              <p className="text-slate-500 dark:text-slate-400 text-sm mb-2">
+                                Se afișează {compatibleGlazingTypes.length} tipuri de sticlă compatibile cu profilul selectat.
+                              </p>
+                              <GlazingSelector
+                                glazingTypes={compatibleGlazingTypes}
+                                config={config}
+                                updateConfig={updateConfig}
+                              />
+                              {compatibleGlazingTypes.length > 0 && !config.glazing_id && (
+                                <p className="text-xs text-slate-400 mt-2">Sticla este opțională — dacă nu selectezi, se va folosi sticla default a profilului.</p>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </ErrorBoundary>
+                    )}
+
 
                     {activeTab === 'color' && selectedProduct && selectedMaterial && config.profile_id && (
                       <ErrorBoundary label="step:color">
