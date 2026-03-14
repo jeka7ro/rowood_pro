@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { GlazingType } from '@/entities/GlazingType';
+import { Profile } from '@/entities/Profile';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -34,31 +35,35 @@ import { PlusCircle, Edit, Trash2, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 function GlazingForm({ isOpen, onSave, onCancel, glazing }) {
-  const [formData, setFormData] = useState(
-    glazing || {
-      name: '',
-      panes_count: 2,
-      thickness: 24,
-      u_value: 1.1,
-      price_per_sqm: 0,
-      features: [],
-      is_active: true,
-    }
-  );
+  const defaultForm = {
+    name: '',
+    panes_count: 2,
+    thickness: 24,
+    u_value: 1.1,
+    price_per_sqm: 0,
+    features: [],
+    compatible_profiles: [],
+    is_active: true,
+  };
+  const [formData, setFormData] = useState(glazing || defaultForm);
   const [isLoading, setIsLoading] = useState(false);
+  const [profiles, setProfiles] = useState([]);
 
   useEffect(() => {
-    // Reset form data when `glazing` prop changes (e.g., when editing a different item or adding a new one)
-    setFormData(glazing || {
-      name: '',
-      panes_count: 2,
-      thickness: 24,
-      u_value: 1.1,
-      price_per_sqm: 0,
-      features: [],
-      is_active: true,
-    });
+    Profile.filter({}).then(data => setProfiles(data || [])).catch(() => setProfiles([]));
+  }, []);
+
+  useEffect(() => {
+    setFormData(glazing || defaultForm);
   }, [glazing]);
+
+  const toggleProfile = (profileId) => {
+    const current = formData.compatible_profiles || [];
+    const updated = current.includes(profileId)
+      ? current.filter(id => id !== profileId)
+      : [...current, profileId];
+    handleChange('compatible_profiles', updated);
+  };
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -115,6 +120,24 @@ function GlazingForm({ isOpen, onSave, onCancel, glazing }) {
                 <Label htmlFor="features" className="text-slate-700 dark:text-slate-300">Caracteristici (separate prin virgulă)</Label>
                 <Input id="features" value={Array.isArray(formData.features) ? formData.features.join(', ') : (formData.features || '')} onChange={(e) => handleChange('features', e.target.value)} className="bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100" />
             </div>
+            {profiles.length > 0 && (
+              <div>
+                <Label className="text-slate-700 dark:text-slate-300 mb-2 block">Profile Compatibile</Label>
+                <div className="border border-slate-200 dark:border-slate-700 rounded-md p-3 max-h-40 overflow-y-auto space-y-2">
+                  {profiles.map(profile => (
+                    <label key={profile.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-1 rounded">
+                      <input
+                        type="checkbox"
+                        checked={(formData.compatible_profiles || []).includes(profile.id)}
+                        onChange={() => toggleProfile(profile.id)}
+                        className="w-4 h-4 accent-green-600"
+                      />
+                      <span className="text-sm text-slate-700 dark:text-slate-300">{profile.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="flex items-center justify-between">
                 <Label htmlFor="is_active" className="text-slate-700 dark:text-slate-300">Activ</Label>
                 <Switch id="is_active" checked={formData.is_active} onCheckedChange={(value) => handleChange('is_active', value)} />
