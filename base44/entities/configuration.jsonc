@@ -1,0 +1,131 @@
+{
+  "name": "Configuration",
+  "type": "object",
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "description": "ID-ul produsului configurat"
+    },
+    "material_id": {
+      "type": "string",
+      "description": "ID-ul materialului ales"
+    },
+    "sub_material_id": {
+      "type": "string",
+      "description": "ID-ul sub-materialului (ex: tip lemn)"
+    },
+    "color_id": {
+      "type": "string",
+      "description": "ID-ul culorii alese"
+    },
+    "custom_ral_code": {
+      "type": "string",
+      "description": "Cod RAL personalizat (dacă este cazul)"
+    },
+    "glazing_id": {
+      "type": "string",
+      "description": "ID-ul tipului de sticlă ales"
+    },
+    "width": {
+      "type": "number",
+      "description": "Lățimea în mm"
+    },
+    "height": {
+      "type": "number",
+      "description": "Înălțimea în mm"
+    },
+    "opening_type": {
+      "type": "string",
+      "description": "Tipul de deschidere ales"
+    },
+    "sash_configs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "description": "Configurații per canat (tip, direcție etc.)"
+    },
+    "accessories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ID-urile accesoriilor selectate"
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1
+    },
+    "calculated_price": {
+      "type": "number",
+      "description": "Prețul calculat pentru configurație"
+    },
+    "additional_options": {
+      "type": "object",
+      "description": "Opțiuni adiționale selectate"
+    },
+    "special_requirements": {
+      "type": "string",
+      "description": "Cerințe speciale"
+    },
+    "customer_notes": {
+      "type": "string",
+      "description": "Notele clientului"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "URL-ul imaginii generate pentru această configurație"
+    },
+    "product_image_url": {
+      "type": "string",
+      "description": "Imagine produs utilizată ca fallback"
+    },
+    "include_transport": {
+      "type": "boolean",
+      "description": "Include transport",
+      "default": false
+    },
+    "include_installation": {
+      "type": "boolean",
+      "description": "Include montaj",
+      "default": false
+    },
+    "delivery_country": {
+      "type": "string",
+      "description": "Țara livrării (ex: RO, DE)"
+    }
+  },
+  "required": [
+    "product_id",
+    "material_id",
+    "width",
+    "height"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "write": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

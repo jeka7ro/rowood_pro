@@ -1,0 +1,81 @@
+{
+  "name": "Color",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Numele culorii"
+    },
+    "hex_code": {
+      "type": "string",
+      "description": "Codul hex al culorii"
+    },
+    "ral_code": {
+      "type": "string",
+      "description": "Codul RAL corespunzător culorii (opțional)"
+    },
+    "material_id": {
+      "type": "string",
+      "description": "ID-ul materialului compatibil (opțional, pentru culori specifice unui material)"
+    },
+    "sub_material_id": {
+      "type": "string",
+      "description": "ID-ul sub-materialului compatibil (lemn specific)"
+    },
+    "compatible_materials": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista de materiale compatibile (suprascrie material_id dacă este setată)"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Imagine de preview pentru textura/mostra (opțională)"
+    },
+    "price_adjustment": {
+      "type": "number",
+      "description": "Ajustarea de preț fixă pentru această culoare",
+      "default": 0
+    },
+    "price_multiplier": {
+      "type": "number",
+      "description": "Multiplicator procentual de preț (ex: 1.1 pt +10%)",
+      "default": 1
+    },
+    "price_per_sqm": {
+      "type": "number",
+      "description": "Cost suplimentar per metru pătrat (EUR/m²)",
+      "default": 0
+    },
+    "is_premium": {
+      "type": "boolean",
+      "default": false
+    },
+    "finish_type": {
+      "type": "string",
+      "enum": [
+        "mat",
+        "lucios",
+        "texturat"
+      ],
+      "default": "mat"
+    },
+    "special_type": {
+      "type": "string",
+      "enum": [
+        "custom_hex",
+        "custom_ral"
+      ],
+      "description": "Tip special de culoare folosit ca regulă de preț pentru RAL la cerere sau HEX custom"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name",
+    "hex_code"
+  ]
+}

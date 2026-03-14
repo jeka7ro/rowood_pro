@@ -1,0 +1,109 @@
+{
+  "name": "PaymentProcessor",
+  "type": "object",
+  "properties": {
+    "processor_name": {
+      "type": "string",
+      "enum": [
+        "viva_wallet",
+        "stripe",
+        "netopia",
+        "euplatesc",
+        "paypal",
+        "transfer_bancar"
+      ],
+      "description": "Numele procesorului de plăți"
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Numele afișat pentru clienți (ex: Viva Wallet, Card bancar)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descriere scurtă pentru clienți"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "URL logo procesor"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Procesor activ/inactiv"
+    },
+    "is_default": {
+      "type": "boolean",
+      "default": false,
+      "description": "Procesor implicit la checkout"
+    },
+    "priority_order": {
+      "type": "number",
+      "default": 100,
+      "description": "Ordinea de afișare (1 = primul)"
+    },
+    "api_key": {
+      "type": "string",
+      "description": "Cheia API pentru procesor"
+    },
+    "secret_key": {
+      "type": "string",
+      "description": "Cheia secretă pentru procesor"
+    },
+    "merchant_id": {
+      "type": "string",
+      "description": "ID-ul comerciantului"
+    },
+    "environment": {
+      "type": "string",
+      "enum": [
+        "test",
+        "production"
+      ],
+      "default": "test",
+      "description": "Mediul de lucru"
+    },
+    "webhook_url": {
+      "type": "string",
+      "description": "URL pentru webhook-uri"
+    },
+    "return_url": {
+      "type": "string",
+      "description": "URL de retur după plată"
+    },
+    "cancel_url": {
+      "type": "string",
+      "description": "URL pentru anulare plată"
+    },
+    "additional_settings": {
+      "type": "object",
+      "description": "Setări suplimentare specifice procesorului",
+      "additionalProperties": true
+    },
+    "supported_currencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [
+        "EUR",
+        "RON"
+      ],
+      "description": "Valutele suportate"
+    },
+    "transaction_fee_percent": {
+      "type": "number",
+      "description": "Comision procentual per tranzacție",
+      "default": 0
+    },
+    "transaction_fee_fixed": {
+      "type": "number",
+      "description": "Comision fix per tranzacție (EUR)",
+      "default": 0
+    }
+  },
+  "required": [
+    "processor_name",
+    "display_name",
+    "is_active"
+  ]
+}

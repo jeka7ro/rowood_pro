@@ -1,0 +1,97 @@
+{
+  "name": "ActivityLog",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID-ul utilizatorului (null pentru anonimi)"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email utilizator pentru referință rapidă"
+    },
+    "session_id": {
+      "type": "string",
+      "description": "ID sesiune pentru tracking anonim"
+    },
+    "activity_type": {
+      "type": "string",
+      "enum": [
+        "page_view",
+        "login",
+        "logout",
+        "signup",
+        "configurator_start",
+        "configurator_complete",
+        "add_to_cart",
+        "remove_from_cart",
+        "checkout_start",
+        "order_placed",
+        "product_view"
+      ],
+      "description": "Tipul activității"
+    },
+    "page_name": {
+      "type": "string",
+      "description": "Numele paginii accesate"
+    },
+    "page_url": {
+      "type": "string",
+      "description": "URL-ul complet"
+    },
+    "referrer": {
+      "type": "string",
+      "description": "De unde a venit utilizatorul"
+    },
+    "user_agent": {
+      "type": "string",
+      "description": "Browser și device info"
+    },
+    "ip_address": {
+      "type": "string",
+      "description": "Adresa IP"
+    },
+    "country": {
+      "type": "string",
+      "description": "Țara utilizatorului"
+    },
+    "country_code": {
+      "type": "string",
+      "description": "Codul țării (RO, DE, etc.)"
+    },
+    "city": {
+      "type": "string",
+      "description": "Orașul utilizatorului"
+    },
+    "region": {
+      "type": "string",
+      "description": "Regiunea/Județul utilizatorului"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Date adiționale (product_id, config_data, etc.)",
+      "additionalProperties": true
+    },
+    "duration_seconds": {
+      "type": "number",
+      "description": "Timp petrecut pe pagină (în secunde)"
+    },
+    "device_type": {
+      "type": "string",
+      "enum": [
+        "desktop",
+        "mobile",
+        "tablet",
+        "unknown"
+      ],
+      "default": "unknown"
+    },
+    "browser": {
+      "type": "string",
+      "description": "Tipul browserului"
+    }
+  },
+  "required": [
+    "activity_type"
+  ]
+}

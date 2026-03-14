@@ -1,0 +1,155 @@
+{
+  "name": "Order",
+  "type": "object",
+  "properties": {
+    "order_number": {
+      "type": "string",
+      "description": "Numărul comenzii"
+    },
+    "customer_type": {
+      "type": "string",
+      "enum": [
+        "individual",
+        "business"
+      ],
+      "default": "individual"
+    },
+    "customer_name": {
+      "type": "string",
+      "description": "Numele clientului (persoană de contact pentru firme)"
+    },
+    "customer_email": {
+      "type": "string",
+      "description": "Email-ul clientului"
+    },
+    "customer_phone": {
+      "type": "string",
+      "description": "Telefonul clientului"
+    },
+    "company_name": {
+      "type": "string",
+      "description": "Numele companiei (dacă este cazul)"
+    },
+    "cui": {
+      "type": "string",
+      "description": "Codul Unic de Înregistrare sau VAT Number UE"
+    },
+    "reg_com": {
+      "type": "string",
+      "description": "Numărul de la Registrul Comerțului (dacă este cazul)"
+    },
+    "billing_address": {
+      "type": "object",
+      "properties": {
+        "street": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "postal_code": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string"
+        }
+      }
+    },
+    "delivery_address": {
+      "type": "object",
+      "properties": {
+        "street": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "postal_code": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string"
+        }
+      }
+    },
+    "configurations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ID-urile configurațiilor comandate"
+    },
+    "total_amount": {
+      "type": "number",
+      "description": "Suma totală a comenzii"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "confirmed",
+        "in_production",
+        "ready",
+        "delivered",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "paid",
+        "failed",
+        "refunded"
+      ],
+      "default": "pending"
+    },
+    "estimated_delivery": {
+      "type": "string",
+      "format": "date"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "delivery_country": {
+      "type": "string",
+      "description": "Țara livrării (RO sau alt cod EU)"
+    },
+    "include_transport": {
+      "type": "boolean",
+      "default": false
+    },
+    "transport_cost": {
+      "type": "number",
+      "default": 0
+    },
+    "include_installation": {
+      "type": "boolean",
+      "default": false
+    },
+    "installation_cost": {
+      "type": "number",
+      "default": 0
+    },
+    "extra_total": {
+      "type": "number",
+      "default": 0
+    },
+    "vat_exempt": {
+      "type": "boolean",
+      "default": false,
+      "description": "Scutire TVA intra-comunitar (VAT validat prin VIES)"
+    },
+    "vat_country": {
+      "type": "string",
+      "description": "Codul țării pentru VAT UE (ex: DE, FR, IT)"
+    }
+  },
+  "required": [
+    "customer_name",
+    "customer_email",
+    "customer_phone",
+    "total_amount"
+  ]
+}

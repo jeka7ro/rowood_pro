@@ -1,0 +1,85 @@
+{
+  "name": "Material",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Numele materialului (ex: PVC, Aluminiu, Lemn)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descrierea detaliată a materialului"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "URL-ul către imaginea secțiunii transversale a profilului"
+    },
+    "opening_types": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tipuri de deschidere disponibile pentru acest material"
+    },
+    "opening_type_pricing": {
+      "type": "array",
+      "description": "Reguli de preț pe dimensiuni pentru fiecare tip de mecanism",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Tipul de mecanism (ex: fix, batant, oscilo-batant)"
+          },
+          "dimension_ranges": {
+            "type": "array",
+            "description": "Intervalele de dimensiuni cu prețuri asociate",
+            "items": {
+              "type": "object",
+              "properties": {
+                "min_size": {
+                  "type": "number",
+                  "description": "Dimensiunea minimă în mm"
+                },
+                "max_size": {
+                  "type": "number",
+                  "description": "Dimensiunea maximă în mm"
+                },
+                "price_per_piece": {
+                  "type": "number",
+                  "description": "Prețul per bucată pentru acest interval (€)"
+                }
+              },
+              "required": [
+                "min_size",
+                "max_size",
+                "price_per_piece"
+              ]
+            }
+          }
+        },
+        "required": [
+          "type",
+          "dimension_ranges"
+        ]
+      }
+    },
+    "price_multiplier": {
+      "type": "number",
+      "description": "Multiplicatorul de preț pentru acest material",
+      "default": 1
+    },
+    "allows_color_selection": {
+      "type": "boolean",
+      "description": "Dacă acest material permite utilizatorului să aleagă o culoare.",
+      "default": true
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

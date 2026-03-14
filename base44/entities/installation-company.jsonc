@@ -1,0 +1,101 @@
+{
+  "name": "InstallationCompany",
+  "type": "object",
+  "properties": {
+    "company_name": {
+      "type": "string",
+      "description": "Numele companiei de montaj"
+    },
+    "contact_person": {
+      "type": "string",
+      "description": "Persoana de contact"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email de contact"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Telefon de contact"
+    },
+    "website": {
+      "type": "string",
+      "description": "Website-ul companiei"
+    },
+    "address_street": {
+      "type": "string",
+      "description": "Strada și numărul"
+    },
+    "address_city": {
+      "type": "string",
+      "description": "Oraș"
+    },
+    "address_postal_code": {
+      "type": "string",
+      "description": "Cod poștal"
+    },
+    "address_country": {
+      "type": "string",
+      "description": "Țara adresei"
+    },
+    "countries_served": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Țările în care oferă servicii"
+    },
+    "regions_served": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Regiunile specifice acoperite"
+    },
+    "services": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Serviciile oferite (montaj ferestre, uși, etc.)"
+    },
+    "languages_spoken": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Limbile vorbite"
+    },
+    "certifications": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Certificările și autorizările"
+    },
+    "average_cost_per_sqm": {
+      "type": "number",
+      "description": "Costul mediu per m² (orientativ)",
+      "default": 0
+    },
+    "notes": {
+      "type": "string",
+      "description": "Note suplimentare despre companie"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "priority_order": {
+      "type": "number",
+      "description": "Ordinea de afișare (1 = primul)",
+      "default": 100
+    }
+  },
+  "required": [
+    "company_name",
+    "contact_person",
+    "email",
+    "countries_served"
+  ]
+}

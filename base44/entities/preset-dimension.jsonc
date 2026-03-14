@@ -1,0 +1,38 @@
+{
+  "name": "PresetDimension",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Numele dimensiunii predefinite (ex: Standard S)"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "all",
+        "ferestre",
+        "usi",
+        "usi-balcon"
+      ],
+      "description": "Categoria de produs pentru care se aplică ('all' pentru toate)"
+    },
+    "width": {
+      "type": "number",
+      "description": "Lățimea în mm"
+    },
+    "height": {
+      "type": "number",
+      "description": "Înălțimea în mm"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name",
+    "category",
+    "width",
+    "height"
+  ]
+}

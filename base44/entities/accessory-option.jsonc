@@ -1,0 +1,55 @@
+{
+  "name": "AccessoryOption",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Numele accesoriului"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "maner",
+        "yala",
+        "balamale",
+        "praguri",
+        "izolatie",
+        "jaluzele",
+        "plase"
+      ],
+      "description": "Categoria accesoriului"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descrierea accesoriului"
+    },
+    "price": {
+      "type": "number",
+      "description": "Prețul accesoriului"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "URL imagine accesoriu"
+    },
+    "compatible_products": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ID-urile produselor compatibile"
+    },
+    "is_required": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name",
+    "category",
+    "price"
+  ]
+}

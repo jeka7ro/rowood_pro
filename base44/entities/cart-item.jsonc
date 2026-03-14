@@ -1,0 +1,86 @@
+{
+  "name": "CartItem",
+  "type": "object",
+  "properties": {
+    "order_id": {
+      "type": "string",
+      "description": "ID-ul comenzii asociate, după plasare"
+    },
+    "product_id": {
+      "type": "string"
+    },
+    "product_name": {
+      "type": "string"
+    },
+    "image_url": {
+      "type": "string"
+    },
+    "price": {
+      "type": "number"
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1
+    },
+    "configuration": {
+      "type": "object",
+      "properties": {
+        "product_id": {
+          "type": "string"
+        },
+        "width": {
+          "type": "number"
+        },
+        "height": {
+          "type": "number"
+        },
+        "material_id": {
+          "type": "string"
+        },
+        "sub_material_id": {
+          "type": "string"
+        },
+        "color_id": {
+          "type": "string"
+        },
+        "custom_ral_code": {
+          "type": "string"
+        },
+        "glazing_id": {
+          "type": "string"
+        },
+        "sash_configs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "direction": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "accessories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "special_requirements": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "product_id",
+    "product_name",
+    "price",
+    "quantity",
+    "configuration"
+  ]
+}

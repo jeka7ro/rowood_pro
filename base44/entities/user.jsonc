@@ -1,0 +1,36 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "phone": {
+      "type": "string",
+      "description": "Telefon utilizator"
+    },
+    "department": {
+      "type": "string",
+      "description": "Departament / echipă"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Note interne despre utilizator"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Marcaj intern activ/inactiv (nu blochează autentificarea)"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Etichete"
+    },
+    "last_login_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data și ora ultimei autentificări"
+    }
+  },
+  "required": []
+}

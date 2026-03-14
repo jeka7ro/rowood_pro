@@ -1,0 +1,141 @@
+{
+  "name": "HomePageContent",
+  "type": "object",
+  "properties": {
+    "language_code": {
+      "type": "string",
+      "enum": [
+        "ro",
+        "en",
+        "de",
+        "fr"
+      ],
+      "description": "Codul limbii pentru acest set de conținut"
+    },
+    "heroTitle": {
+      "type": "string"
+    },
+    "heroSubtitle": {
+      "type": "string"
+    },
+    "heroImage": {
+      "type": "string",
+      "description": "URL-ul imaginii principale (poster)"
+    },
+    "heroImageAspectRatio": {
+      "type": "string",
+      "enum": [
+        "video",
+        "square",
+        "portrait"
+      ],
+      "default": "video",
+      "description": "Formatul imaginii principale (16:9, 1:1, 4:5)"
+    },
+    "whyChooseUsTitle": {
+      "type": "string"
+    },
+    "whyChooseUsSubtitle": {
+      "type": "string"
+    },
+    "feature1_title": {
+      "type": "string"
+    },
+    "feature1_description": {
+      "type": "string"
+    },
+    "feature2_title": {
+      "type": "string"
+    },
+    "feature2_description": {
+      "type": "string"
+    },
+    "feature3_title": {
+      "type": "string"
+    },
+    "feature3_description": {
+      "type": "string"
+    },
+    "feature4_title": {
+      "type": "string"
+    },
+    "feature4_description": {
+      "type": "string"
+    },
+    "stat1_number": {
+      "type": "string"
+    },
+    "stat1_label": {
+      "type": "string"
+    },
+    "stat2_number": {
+      "type": "string"
+    },
+    "stat2_label": {
+      "type": "string"
+    },
+    "stat3_number": {
+      "type": "string"
+    },
+    "stat3_label": {
+      "type": "string"
+    },
+    "ctaTitle": {
+      "type": "string"
+    },
+    "ctaSubtitle": {
+      "type": "string"
+    },
+    "contactEmail": {
+      "type": "string",
+      "description": "Adresa de email de contact"
+    },
+    "contactPhone": {
+      "type": "string",
+      "description": "Numărul de telefon de contact"
+    },
+    "contactAddress": {
+      "type": "string",
+      "description": "Adresa fizică"
+    },
+    "contactCity": {
+      "type": "string",
+      "description": "Orașul"
+    },
+    "contactCountry": {
+      "type": "string",
+      "description": "Țara"
+    },
+    "workingHours": {
+      "type": "string",
+      "description": "Programul de lucru"
+    },
+    "companyDescription": {
+      "type": "string",
+      "description": "Descrierea companiei pentru footer"
+    },
+    "orderInfoTitle": {
+      "type": "string",
+      "description": "Titlul secțiunii de informații din sumarul comenzii (ex: Informații importante)"
+    },
+    "orderInfoPoint1": {
+      "type": "string",
+      "description": "Punctul 1 de informații"
+    },
+    "orderInfoPoint2": {
+      "type": "string",
+      "description": "Punctul 2 de informații"
+    },
+    "orderInfoPoint3": {
+      "type": "string",
+      "description": "Punctul 3 de informații"
+    },
+    "orderInfoPoint4": {
+      "type": "string",
+      "description": "Punctul 4 de informații"
+    }
+  },
+  "required": [
+    "language_code"
+  ]
+}

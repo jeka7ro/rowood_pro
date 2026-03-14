@@ -1,0 +1,46 @@
+{
+  "name": "UserLog",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID admin care a făcut acțiunea"
+    },
+    "target_user_id": {
+      "type": "string",
+      "description": "ID utilizator asupra căruia s-a operat"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "role_change",
+        "update",
+        "delete",
+        "create",
+        "login",
+        "logout"
+      ],
+      "description": "Tip acțiune"
+    },
+    "details": {
+      "type": "string",
+      "description": "Detalii / motiv"
+    }
+  },
+  "required": [
+    "user_id",
+    "action"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "write": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

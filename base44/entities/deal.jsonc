@@ -1,0 +1,98 @@
+{
+  "name": "Deal",
+  "type": "object",
+  "properties": {
+    "deal_name": {
+      "type": "string",
+      "description": "Numele tranzacției"
+    },
+    "lead_id": {
+      "type": "string",
+      "description": "ID-ul lead-ului asociat"
+    },
+    "customer_email": {
+      "type": "string",
+      "description": "Email-ul clientului"
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "prospecting",
+        "qualification",
+        "proposal",
+        "negotiation",
+        "closed_won",
+        "closed_lost"
+      ],
+      "default": "prospecting"
+    },
+    "value": {
+      "type": "number",
+      "description": "Valoarea tranzacției în EUR"
+    },
+    "probability": {
+      "type": "number",
+      "description": "Probabilitatea de închidere (0-100)"
+    },
+    "expected_close_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data estimată de închidere"
+    },
+    "actual_close_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data reală de închidere"
+    },
+    "assigned_to": {
+      "type": "string",
+      "description": "ID-ul sales rep-ului responsabil"
+    },
+    "products": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit_price": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Produsele din deal"
+    },
+    "configurations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ID-urile configurațiilor"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Note despre tranzacție"
+    },
+    "next_action": {
+      "type": "string",
+      "description": "Următoarea acțiune de întreprins"
+    },
+    "competitor": {
+      "type": "string",
+      "description": "Competitorul principal"
+    },
+    "loss_reason": {
+      "type": "string",
+      "description": "Motivul pierderii (dacă aplicabil)"
+    }
+  },
+  "required": [
+    "deal_name",
+    "customer_email",
+    "value"
+  ]
+}

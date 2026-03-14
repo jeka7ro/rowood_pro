@@ -1,0 +1,126 @@
+{
+  "name": "Profile",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Numele profilului (ex: IDEAL 4000)"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "URL-ul imaginii profilului"
+    },
+    "u_value": {
+      "type": "number",
+      "description": "Valoarea U pentru izolație termică"
+    },
+    "design_type": {
+      "type": "string",
+      "description": "Tipul de design (ex: Aspect unghiular, Design rotunjit)"
+    },
+    "installation_depth": {
+      "type": "number",
+      "description": "Adâncimea de instalare în mm"
+    },
+    "glass_panes_count": {
+      "type": "number",
+      "description": "Numărul de foi de sticlă (ex: 2 pentru geam dublu, 3 pentru triplu)"
+    },
+    "default_glazing_id": {
+      "type": "string",
+      "description": "ID-ul tipului de sticlă implicit pentru acest profil"
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Caracteristici suplimentare"
+    },
+    "price_per_linear_meter": {
+      "type": "number",
+      "description": "Preț per metru liniar (€/ml) - se calculează pe baza perimetrului",
+      "default": 0
+    },
+    "price_multiplier": {
+      "type": "number",
+      "description": "Multiplicator preț (ex: 1.10 pentru +10%)",
+      "default": 1
+    },
+    "compatible_materials": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ID-urile materialelor compatibile"
+    },
+    "product_specific_pricing": {
+      "type": "array",
+      "description": "Prețuri specifice per produs",
+      "items": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string",
+            "description": "ID-ul produsului"
+          },
+          "glass_price_per_sqm": {
+            "type": "number",
+            "description": "Prețul sticlei per metru pătrat pentru acest produs (€/m²)",
+            "default": 0
+          },
+          "hardware_fixed_price": {
+            "type": "number",
+            "description": "Prețul fix pentru montaj pentru acest produs (€)",
+            "default": 0
+          },
+          "transport_ro_price_per_sqm": {
+            "type": "number",
+            "description": "Prețul transportului în România per metru pătrat (€/m²)",
+            "default": 0
+          },
+          "transport_external_price_per_sqm": {
+            "type": "number",
+            "description": "Prețul transportului extern per metru pătrat (€/m²)",
+            "default": 0
+          },
+          "mechanism_height_pricing": {
+            "type": "object",
+            "description": "Prețuri mecanisme pe intervale de înălțime (per canat)",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "max_height": {
+                    "type": "number",
+                    "description": "Înălțimea maximă pentru acest interval (mm)"
+                  },
+                  "price_per_piece": {
+                    "type": "number",
+                    "description": "Prețul per bucată/canat pentru acest interval (€)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "product_id"
+        ]
+      }
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "priority_order": {
+      "type": "number",
+      "default": 100,
+      "description": "Ordinea de afișare"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

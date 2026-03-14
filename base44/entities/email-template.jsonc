@@ -1,0 +1,54 @@
+{
+  "name": "EmailTemplate",
+  "type": "object",
+  "properties": {
+    "template_name": {
+      "type": "string",
+      "description": "Numele template-ului"
+    },
+    "template_type": {
+      "type": "string",
+      "enum": [
+        "order_confirmation",
+        "order_status_update",
+        "invoice_sent"
+      ],
+      "description": "Tipul template-ului"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Subiectul emailului"
+    },
+    "html_body": {
+      "type": "string",
+      "description": "Corpul HTML al emailului"
+    },
+    "language_code": {
+      "type": "string",
+      "enum": [
+        "ro",
+        "en",
+        "de",
+        "fr"
+      ],
+      "default": "ro"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "variables": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista variabilelor disponibile ({{customer_name}}, {{order_number}}, etc.)"
+    }
+  },
+  "required": [
+    "template_name",
+    "template_type",
+    "subject",
+    "html_body"
+  ]
+}

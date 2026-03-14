@@ -1,0 +1,90 @@
+{
+  "name": "PaymentTransaction",
+  "type": "object",
+  "properties": {
+    "order_id": {
+      "type": "string",
+      "description": "ID-ul comenzii asociate"
+    },
+    "processor_id": {
+      "type": "string",
+      "description": "ID-ul procesorului de plăți utilizat"
+    },
+    "processor_name": {
+      "type": "string",
+      "description": "Numele procesorului (pentru referință rapidă)"
+    },
+    "transaction_id": {
+      "type": "string",
+      "description": "ID-ul tranzacției de la procesor"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Suma totală plătită"
+    },
+    "currency": {
+      "type": "string",
+      "default": "EUR",
+      "description": "Valuta tranzacției"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "processing",
+        "completed",
+        "failed",
+        "cancelled",
+        "refunded"
+      ],
+      "default": "pending",
+      "description": "Statusul tranzacției"
+    },
+    "payment_method": {
+      "type": "string",
+      "description": "Metoda de plată (card, transfer, etc.)"
+    },
+    "customer_email": {
+      "type": "string",
+      "description": "Email-ul clientului"
+    },
+    "customer_name": {
+      "type": "string",
+      "description": "Numele clientului"
+    },
+    "processor_response": {
+      "type": "object",
+      "description": "Răspunsul complet de la procesor",
+      "additionalProperties": true
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Mesajul de eroare (dacă există)"
+    },
+    "refund_amount": {
+      "type": "number",
+      "description": "Suma rambursată (dacă este cazul)"
+    },
+    "refund_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data rambursării"
+    },
+    "payment_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data și ora plății efective"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Date suplimentare despre tranzacție",
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "order_id",
+    "processor_id",
+    "amount",
+    "status"
+  ]
+}

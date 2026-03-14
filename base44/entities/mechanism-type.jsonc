@@ -1,0 +1,111 @@
+{
+  "name": "MechanismType",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Numele mecanismului (ex: Batant, Oscilo-batant, Fix)"
+    },
+    "code": {
+      "type": "string",
+      "description": "Codul intern (ex: fix, batant, oscilo-batant)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descrierea mecanismului"
+    },
+    "compatible_materials": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ID-urile materialelor compatibile (ex: PVC, Lemn, Aluminiu)"
+    },
+    "min_height": {
+      "type": "number",
+      "description": "Înălțimea minimă în mm",
+      "default": 300
+    },
+    "max_height": {
+      "type": "number",
+      "description": "Înălțimea maximă în mm",
+      "default": 2500
+    },
+    "min_sash_width": {
+      "type": "number",
+      "description": "Lățimea minimă per canat în mm",
+      "default": 300
+    },
+    "max_sash_width": {
+      "type": "number",
+      "description": "Lățimea maximă per canat în mm",
+      "default": 1500
+    },
+    "glass_area_adjustment_percent": {
+      "type": "number",
+      "description": "Procentul de reducere a suprafeței sticlei pentru acest mecanism (ex: 10 = -10%)",
+      "default": 0
+    },
+    "price_per_piece": {
+      "type": "number",
+      "description": "Preț per bucată (€)",
+      "default": 0
+    },
+    "price_per_linear_meter": {
+      "type": "number",
+      "description": "Preț per metru liniar (€/ml)",
+      "default": 0
+    },
+    "height_price_grid": {
+      "type": "array",
+      "description": "Grilă de prețuri pe înălțime",
+      "items": {
+        "type": "object",
+        "properties": {
+          "max_height": {
+            "type": "number",
+            "description": "Înălțimea maximă pentru acest interval (mm)"
+          },
+          "price": {
+            "type": "number",
+            "description": "Prețul pentru acest interval (€)"
+          }
+        }
+      }
+    },
+    "width_price_grid": {
+      "type": "array",
+      "description": "Grilă de prețuri pe lățime (dimensiuni)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "min_size": {
+            "type": "number",
+            "description": "Dimensiunea minimă (mm)"
+          },
+          "max_size": {
+            "type": "number",
+            "description": "Dimensiunea maximă (mm)"
+          },
+          "price_per_piece": {
+            "type": "number",
+            "description": "Prețul per bucată pentru acest interval (€)"
+          }
+        }
+      }
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "priority_order": {
+      "type": "number",
+      "default": 100,
+      "description": "Ordinea de afișare"
+    }
+  },
+  "required": [
+    "name",
+    "code"
+  ]
+}

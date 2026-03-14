@@ -1,0 +1,120 @@
+{
+  "name": "PromotionEvent",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Numele evenimentului promoțional"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descriere scurtă (opțional)"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data de început"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data de sfârșit"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Activ / inactiv"
+    },
+    "show_on_homepage": {
+      "type": "boolean",
+      "default": false,
+      "description": "Afișează pe prima pagină"
+    },
+    "priority_order": {
+      "type": "number",
+      "default": 100,
+      "description": "Ordine afișare (1 = primul)"
+    },
+    "selected_products": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ID-urile produselor incluse"
+    },
+    "selected_materials": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ID-urile materialelor incluse"
+    },
+    "selected_sub_materials": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ID-urile tipurilor de lemn incluse"
+    },
+    "selected_colors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ID-urile culorilor incluse"
+    },
+    "global_discount_percent": {
+      "type": "number",
+      "description": "Discount global (%) pentru toate elementele selectate",
+      "default": 0
+    },
+    "global_discount_fixed": {
+      "type": "number",
+      "description": "Discount global fix (€) pe articol",
+      "default": 0
+    },
+    "item_discounts": {
+      "type": "array",
+      "description": "Discounturi specifice pe element",
+      "items": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": [
+              "product",
+              "material",
+              "sub_material",
+              "color"
+            ]
+          },
+          "item_id": {
+            "type": "string",
+            "description": "ID-ul elementului"
+          },
+          "discount_percent": {
+            "type": "number",
+            "default": 0
+          },
+          "discount_fixed": {
+            "type": "number",
+            "default": 0
+          }
+        },
+        "required": [
+          "scope",
+          "item_id"
+        ]
+      }
+    },
+    "banner_image_url": {
+      "type": "string",
+      "description": "Imagine de promovare (opțional)"
+    }
+  },
+  "required": [
+    "name",
+    "start_date",
+    "end_date"
+  ]
+}

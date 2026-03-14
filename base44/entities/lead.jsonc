@@ -1,0 +1,106 @@
+{
+  "name": "Lead",
+  "type": "object",
+  "properties": {
+    "first_name": {
+      "type": "string",
+      "description": "Prenumele lead-ului"
+    },
+    "last_name": {
+      "type": "string",
+      "description": "Numele lead-ului"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email-ul lead-ului"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Telefonul lead-ului"
+    },
+    "company": {
+      "type": "string",
+      "description": "Compania lead-ului"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "website",
+        "configurator",
+        "referral",
+        "advertising",
+        "cold_call",
+        "social_media"
+      ],
+      "description": "Sursa lead-ului"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "new",
+        "contacted",
+        "qualified",
+        "proposal",
+        "negotiation",
+        "won",
+        "lost"
+      ],
+      "default": "new"
+    },
+    "interest_level": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "default": "medium"
+    },
+    "budget": {
+      "type": "number",
+      "description": "Bugetul estimat în EUR"
+    },
+    "project_timeline": {
+      "type": "string",
+      "description": "Timeline-ul proiectului"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Note despre lead"
+    },
+    "last_contacted": {
+      "type": "string",
+      "format": "date",
+      "description": "Ultima dată când a fost contactat"
+    },
+    "next_followup": {
+      "type": "string",
+      "format": "date",
+      "description": "Data următorului follow-up"
+    },
+    "assigned_to": {
+      "type": "string",
+      "description": "ID-ul utilizatorului responsabil"
+    },
+    "products_interested": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ID-urile produselor de interes"
+    },
+    "configurations_requested": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ID-urile configurațiilor cerute"
+    }
+  },
+  "required": [
+    "first_name",
+    "last_name",
+    "email",
+    "source"
+  ]
+}

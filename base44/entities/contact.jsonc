@@ -1,0 +1,100 @@
+{
+  "name": "Contact",
+  "type": "object",
+  "properties": {
+    "first_name": {
+      "type": "string"
+    },
+    "last_name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "mobile": {
+      "type": "string"
+    },
+    "company": {
+      "type": "string"
+    },
+    "cui": {
+      "type": "string",
+      "description": "Codul Unic de Înregistrare"
+    },
+    "reg_com": {
+      "type": "string",
+      "description": "Numărul de la Registrul Comerțului"
+    },
+    "position": {
+      "type": "string"
+    },
+    "department": {
+      "type": "string"
+    },
+    "address": {
+      "type": "object",
+      "properties": {
+        "street": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "postal_code": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string"
+        }
+      }
+    },
+    "lead_source": {
+      "type": "string"
+    },
+    "customer_type": {
+      "type": "string",
+      "enum": [
+        "individual",
+        "business"
+      ],
+      "default": "individual"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notes": {
+      "type": "string"
+    },
+    "last_contact_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "total_orders_value": {
+      "type": "number",
+      "default": 0
+    },
+    "orders_count": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "first_name",
+    "last_name",
+    "email"
+  ]
+}

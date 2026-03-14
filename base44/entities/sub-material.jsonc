@@ -1,0 +1,37 @@
+{
+  "name": "SubMaterial",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Numele sub-materialului (ex: Stejar, Pin, Molid)"
+    },
+    "parent_material_id": {
+      "type": "string",
+      "description": "ID-ul materialului părinte (din entitatea Material)"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "URL-ul către imaginea de prezentare a texturii"
+    },
+    "price_multiplier": {
+      "type": "number",
+      "description": "Multiplicatorul de preț (ex: 1.1 pentru +10%)",
+      "default": 1
+    },
+    "price_per_sqm": {
+      "type": "number",
+      "description": "Cost suplimentar per metru pătrat (EUR/m²)",
+      "default": 0
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name",
+    "parent_material_id",
+    "price_multiplier"
+  ]
+}

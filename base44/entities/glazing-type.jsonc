@@ -1,0 +1,42 @@
+{
+  "name": "GlazingType",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Numele tipului de sticlă (Simple, Dublă, Triplă)"
+    },
+    "panes_count": {
+      "type": "number",
+      "description": "Numărul de foi de sticlă"
+    },
+    "thickness": {
+      "type": "number",
+      "description": "Grosimea în mm"
+    },
+    "u_value": {
+      "type": "number",
+      "description": "Valoarea U pentru izolație termică"
+    },
+    "price_per_sqm": {
+      "type": "number",
+      "description": "Preț per metru pătrat (€/m²)",
+      "default": 0
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Caracteristici speciale (fonoizolantă, securitate, etc.)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name",
+    "panes_count"
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "name": "CompanySettings",
+  "type": "object",
+  "properties": {
+    "company_name": {
+      "type": "string",
+      "description": "Numele oficial al companiei"
+    },
+    "fiscal_code": {
+      "type": "string",
+      "description": "Codul fiscal (CUI) al companiei"
+    },
+    "trade_register": {
+      "type": "string",
+      "description": "Nr. Registrul Comerțului"
+    },
+    "vat_number": {
+      "type": "string",
+      "description": "Codul de TVA"
+    },
+    "address_street": {
+      "type": "string",
+      "description": "Adresa (strada, număr)"
+    },
+    "address_city": {
+      "type": "string",
+      "description": "Orașul"
+    },
+    "address_county": {
+      "type": "string",
+      "description": "Județul"
+    },
+    "address_postal_code": {
+      "type": "string",
+      "description": "Codul poștal"
+    },
+    "address_country": {
+      "type": "string",
+      "default": "România"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Telefon principal"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email oficial"
+    },
+    "website": {
+      "type": "string",
+      "description": "Adresa website"
+    },
+    "bank_name": {
+      "type": "string",
+      "description": "Numele băncii"
+    },
+    "iban": {
+      "type": "string",
+      "description": "Contul IBAN"
+    },
+    "company_logo_url": {
+      "type": "string",
+      "description": "URL logo companie pentru facturi"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "company_name",
+    "fiscal_code"
+  ]
+}

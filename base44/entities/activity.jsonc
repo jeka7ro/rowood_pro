@@ -1,0 +1,81 @@
+{
+  "name": "Activity",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "call",
+        "email",
+        "meeting",
+        "task",
+        "note",
+        "quote_sent",
+        "demo"
+      ],
+      "description": "Tipul activității"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Subiectul activității"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descrierea detaliată"
+    },
+    "related_to": {
+      "type": "string",
+      "enum": [
+        "lead",
+        "deal",
+        "customer"
+      ],
+      "description": "Tipul înregistrării asociate"
+    },
+    "related_id": {
+      "type": "string",
+      "description": "ID-ul înregistrării asociate"
+    },
+    "assigned_to": {
+      "type": "string",
+      "description": "ID-ul utilizatorului responsabil"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data scadentă"
+    },
+    "completed": {
+      "type": "boolean",
+      "default": false
+    },
+    "completed_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data finalizării"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "normal",
+        "high"
+      ],
+      "default": "normal"
+    },
+    "outcome": {
+      "type": "string",
+      "description": "Rezultatul activității"
+    },
+    "duration_minutes": {
+      "type": "number",
+      "description": "Durata în minute"
+    }
+  },
+  "required": [
+    "type",
+    "subject",
+    "related_to",
+    "related_id"
+  ]
+}
