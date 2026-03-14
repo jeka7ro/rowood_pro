@@ -3,6 +3,7 @@ import { GlazingType } from '@/entities/GlazingType';
 import { Profile } from '@/entities/Profile';
 import { Material } from '@/entities/Material';
 import { UploadFile } from '@/integrations/Core';
+import { packGlazingMeta, unpackGlazingMeta } from '@/utils/glazingMeta';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -271,7 +272,7 @@ export default function GlazingManager() {
     setIsLoading(true);
     try {
       const allGlazingTypes = await GlazingType.list('-created_date', 100);
-      setGlazingTypes(allGlazingTypes);
+      setGlazingTypes(allGlazingTypes.map(unpackGlazingMeta));
     } catch (error) {
       console.error("Failed to fetch glazing types", error);
     } finally {
@@ -286,9 +287,11 @@ export default function GlazingManager() {
 
   const handleSave = async (formData) => {
     if (editingGlazing) {
-      await GlazingType.update(editingGlazing.id, formData);
+      const payload = packGlazingMeta(formData);
+      await GlazingType.update(editingGlazing.id, payload);
     } else {
-      await GlazingType.create(formData);
+      const payload = packGlazingMeta(formData);
+      await GlazingType.create(payload);
     }
     await fetchGlazingTypes();
     setIsFormOpen(false);

@@ -44,6 +44,7 @@ import MechanismPresets from '../components/configurator/MechanismPresets';
 import ColorStep from "../components/configurator/ColorStep";
 import GlazingSelector from '../components/configurator/GlazingSelector';
 import ErrorBoundary from "../components/common/ErrorBoundary";
+import { unpackGlazingMeta } from '@/utils/glazingMeta';
 
 // Lazy load hexFromRal to avoid import-time errors
 let hexFromRalFunc = null;
@@ -266,7 +267,7 @@ export default function ConfiguratorPage() {
     const fetchGlazing = async () => {
       try {
         const glazing = await base44.entities.GlazingType.filter({ is_active: true });
-        setGlazingTypes(glazing || []);
+        setGlazingTypes((glazing || []).map(unpackGlazingMeta));
       } catch (e) {
         console.warn('Could not load glazing types:', e);
       }
