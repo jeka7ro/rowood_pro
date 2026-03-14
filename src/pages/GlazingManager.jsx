@@ -37,18 +37,20 @@ import { PlusCircle, Edit, Trash2, Loader2, Upload, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 function GlazingForm({ isOpen, onSave, onCancel, glazing }) {
-  const defaultForm = {
-    name: '',
-    panes_count: 2,
-    thickness: 24,
-    u_value: 1.1,
-    price_per_sqm: 0,
-    features: [],
-    compatible_profiles: [],
-    image_url: '',
-    is_active: true,
-  };
-  const [formData, setFormData] = useState(glazing || defaultForm);
+  const buildForm = (g) => ({
+    name: g?.name || '',
+    panes_count: g?.panes_count ?? 2,
+    thickness: g?.thickness ?? 24,
+    u_value: g?.u_value ?? 1.1,
+    price_per_sqm: g?.price_per_sqm ?? 0,
+    features: g?.features || [],
+    compatible_profiles: g?.compatible_profiles || [],
+    image_url: g?.image_url || '',
+    is_active: g?.is_active ?? true,
+    tip: g?.tip || '',
+  });
+
+  const [formData, setFormData] = useState(() => buildForm(glazing));
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [profiles, setProfiles] = useState([]);
@@ -61,7 +63,8 @@ function GlazingForm({ isOpen, onSave, onCancel, glazing }) {
   }, []);
 
   useEffect(() => {
-    setFormData(glazing || defaultForm);
+    setFormData(buildForm(glazing));
+    setMaterialFilter('');
   }, [glazing]);
 
   const toggleProfile = (profileId) => {

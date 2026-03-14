@@ -75,6 +75,17 @@ export default function GlazingSelector({ glazingTypes = [], config, updateConfi
                   <CheckCircle className="absolute -top-2 -right-2 w-7 h-7 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900 rounded-full z-10 shadow-md" />
                 )}
                 
+                {/* Imagine sticlă */}
+                {glazing.image_url ? (
+                  <div className="mb-3 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 h-28 flex items-center justify-center">
+                    <img src={glazing.image_url} alt={glazing.name} className="h-full w-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="mb-3 rounded-xl bg-slate-100 dark:bg-slate-800 h-28 flex items-center justify-center">
+                    <Layers className="w-10 h-10 text-slate-300 dark:text-slate-600" />
+                  </div>
+                )}
+
                 {/* Header cu nume și multiplicator */}
                 <div className="flex items-start justify-between mb-4">
                   <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 pr-2">{glazing.name}</h3>
