@@ -97,22 +97,26 @@ function GlazingForm({ isOpen, onSave, onCancel, glazing }) {
   const filteredProfiles = materialFilter
     ? profiles.filter(p => Array.isArray(p.compatible_materials) && p.compatible_materials.includes(materialFilter))
     : profiles;
-
   const handleSave = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    const dataToSave = { 
-        ...formData,
-        panes_count: parseInt(formData.panes_count),
-        thickness: parseFloat(formData.thickness),
-        u_value: parseFloat(formData.u_value),
-        price_per_sqm: parseFloat(formData.price_per_sqm) || 0,
-        features: Array.isArray(formData.features) ? formData.features : formData.features.split(',').map(f => f.trim()).filter(f => f !== '')
-    };
-    await onSave(dataToSave);
-    setIsLoading(false);
+    try {
+      const dataToSave = { 
+          ...formData,
+          panes_count: parseInt(formData.panes_count),
+          thickness: parseFloat(formData.thickness),
+          u_value: parseFloat(formData.u_value),
+          price_per_sqm: parseFloat(formData.price_per_sqm) || 0,
+          features: Array.isArray(formData.features) ? formData.features : formData.features.split(',').map(f => f.trim()).filter(f => f !== '')
+      };
+      await onSave(dataToSave);
+    } catch(err) {
+      console.error("Save error:", err);
+      alert("Eroare la salvare: " + err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
-
   return (
     <Dialog open={isOpen} onOpenChange={onCancel}>
       <DialogContent className="max-w-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 max-h-[90vh] flex flex-col">
@@ -288,9 +292,11 @@ export default function GlazingManager() {
   const handleSave = async (formData) => {
     if (editingGlazing) {
       const payload = packGlazingMeta(formData);
+      console.log('[GlazingManager] Update payload:', JSON.stringify(payload));
       await GlazingType.update(editingGlazing.id, payload);
     } else {
       const payload = packGlazingMeta(formData);
+      console.log('[GlazingManager] Create payload:', JSON.stringify(payload));
       await GlazingType.create(payload);
     }
     await fetchGlazingTypes();

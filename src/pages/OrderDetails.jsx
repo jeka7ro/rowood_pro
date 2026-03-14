@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { Order } from '@/entities/Order';
-import { User } from '@/entities/User';
+import { Auth } from '@/entities';
 import { CompanySettings } from '@/entities/CompanySettings';
 import { Product } from '@/entities/Product';
 import { Material } from '@/entities/Material';
@@ -65,7 +65,7 @@ export default function OrderDetailsPage() {
           return;
         }
 
-        const currentUser = await User.me();
+        const currentUser = await Auth.me();
 
         const orderRes = await Order.get(orderId);
         if (!orderRes) {

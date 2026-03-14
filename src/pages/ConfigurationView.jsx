@@ -9,7 +9,7 @@ import { Color } from '@/entities/Color';
 import { GlazingType } from '@/entities/GlazingType';
 import { AccessoryOption } from '@/entities/AccessoryOption';
 import { Order } from '@/entities/Order';
-import { User } from '@/entities/User';
+import { Auth } from '@/entities';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,7 +33,7 @@ export default function ConfigurationViewPage() {
   const loadConfigurationData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const currentUser = await User.me();
+      const currentUser = await Auth.me();
       if (currentUser.role !== 'admin') {
         navigate(createPageUrl('Home'));
         return;

@@ -32,4 +32,5 @@ export const MechanismType = makeEntity('MechanismType');
 export const UserLog = makeEntity('UserLog');
 export const PaymentProcessor = makeEntity('PaymentProcessor');
 export const PaymentTransaction = makeEntity('PaymentTransaction');
-export const User = client.auth;
+export const User = makeEntity('User');
+export const Auth = client.auth;
