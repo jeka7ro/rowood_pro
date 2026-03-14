@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { GlazingType } from '@/entities/GlazingType';
 import { Profile } from '@/entities/Profile';
 import { Material } from '@/entities/Material';
+import { UploadFile } from '@/integrations/Core';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -32,7 +33,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { PlusCircle, Edit, Trash2, Loader2 } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Loader2, Upload, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 function GlazingForm({ isOpen, onSave, onCancel, glazing }) {
@@ -44,10 +45,12 @@ function GlazingForm({ isOpen, onSave, onCancel, glazing }) {
     price_per_sqm: 0,
     features: [],
     compatible_profiles: [],
+    image_url: '',
     is_active: true,
   };
   const [formData, setFormData] = useState(glazing || defaultForm);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [profiles, setProfiles] = useState([]);
   const [materials, setMaterials] = useState([]);
   const [materialFilter, setMaterialFilter] = useState('');
@@ -73,6 +76,20 @@ function GlazingForm({ isOpen, onSave, onCancel, glazing }) {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    try {
+      const result = await UploadFile({ file });
+      handleChange('image_url', result.file_url);
+    } catch (err) {
+      console.error('Upload failed', err);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const filteredProfiles = materialFilter
     ? profiles.filter(p => Array.isArray(p.compatible_materials) && p.compatible_materials.includes(materialFilter))
     : profiles;
@@ -94,12 +111,12 @@ function GlazingForm({ isOpen, onSave, onCancel, glazing }) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onCancel}>
-      <DialogContent className="max-w-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700">
+      <DialogContent className="max-w-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-slate-900 dark:text-slate-100">{glazing ? 'Editează Tip Sticlă' : 'Adaugă Tip Sticlă Nou'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSave}>
-          <div className="space-y-4 p-4">
+        <form onSubmit={handleSave} className="flex flex-col flex-1 overflow-hidden">
+          <div className="space-y-4 p-4 overflow-y-auto flex-1">
             <div>
               <Label htmlFor="name" className="text-slate-700 dark:text-slate-300">Nume Tip Sticlă</Label>
               <Input id="name" value={formData.name} onChange={(e) => handleChange('name', e.target.value)} required className="bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100" />
@@ -186,6 +203,35 @@ function GlazingForm({ isOpen, onSave, onCancel, glazing }) {
                 </div>
               </div>
             )}
+            {/* Upload imagine */}
+            <div>
+              <Label className="text-slate-700 dark:text-slate-300 mb-1 block">Imagine Sticlă</Label>
+              <div className="flex items-start gap-3">
+                {formData.image_url ? (
+                  <div className="relative">
+                    <img src={formData.image_url} alt="preview" className="w-20 h-20 object-cover rounded-md border border-slate-200" />
+                    <button
+                      type="button"
+                      onClick={() => handleChange('image_url', '')}
+                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center"
+                    ><X className="w-3 h-3" /></button>
+                  </div>
+                ) : (
+                  <div className="w-20 h-20 border-2 border-dashed border-slate-300 rounded-md flex items-center justify-center text-slate-400">
+                    <Upload className="w-6 h-6" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <label className="cursor-pointer">
+                    <div className="text-sm px-3 py-2 border border-slate-300 rounded-md hover:bg-slate-50 text-center">
+                      {isUploading ? <Loader2 className="animate-spin h-4 w-4 mx-auto" /> : 'Alege imagine'}
+                    </div>
+                    <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" disabled={isUploading} />
+                  </label>
+                  <p className="text-xs text-slate-400 mt-1">JPG, PNG, WEBP</p>
+                </div>
+              </div>
+            </div>
             <div className="flex items-center justify-between">
                 <Label htmlFor="is_active" className="text-slate-700 dark:text-slate-300">Activ</Label>
                 <Switch id="is_active" checked={formData.is_active} onCheckedChange={(value) => handleChange('is_active', value)} />
