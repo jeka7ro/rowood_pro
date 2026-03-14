@@ -76,15 +76,14 @@ export default function GlazingSelector({ glazingTypes = [], config, updateConfi
                 )}
                 
                 {/* Imagine sticlă */}
-                {glazing.image_url ? (
-                  <div className="mb-3 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 h-28 flex items-center justify-center">
-                    <img src={glazing.image_url} alt={glazing.name} className="h-full w-full object-cover" />
-                  </div>
-                ) : (
-                  <div className="mb-3 rounded-xl bg-slate-100 dark:bg-slate-800 h-28 flex items-center justify-center">
-                    <Layers className="w-10 h-10 text-slate-300 dark:text-slate-600" />
-                  </div>
-                )}
+                <div className="mb-3 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 h-28 flex items-center justify-center">
+                  <img 
+                    src={glazing.image_url || '/glass_default.png'} 
+                    alt={glazing.name} 
+                    className="h-full w-full object-cover" 
+                    onError={(e) => { e.target.src = '/glass_default.png'; }}
+                  />
+                </div>
 
                 {/* Header cu nume și multiplicator */}
                 <div className="flex items-start justify-between mb-4">

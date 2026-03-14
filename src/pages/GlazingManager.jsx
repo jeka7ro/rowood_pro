@@ -333,6 +333,7 @@ export default function GlazingManager() {
         <Table>
           <TableHeader>
             <TableRow className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+              <TableHead className="w-12"></TableHead>
               <TableHead className="text-slate-700 dark:text-slate-300">Nume</TableHead>
               <TableHead className="text-slate-700 dark:text-slate-300">Foi Sticlă</TableHead>
               <TableHead className="text-slate-700 dark:text-slate-300">Grosime (mm)</TableHead>
@@ -350,6 +351,16 @@ export default function GlazingManager() {
             ) : glazingTypes.length > 0 ? (
               glazingTypes.map((glazing) => (
                 <TableRow key={glazing.id} className="border-slate-200 dark:border-slate-700">
+                  <TableCell>
+                    <div className="w-10 h-10 rounded overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 flex items-center justify-center">
+                      <img 
+                        src={glazing.image_url || '/glass_default.png'} 
+                        alt={glazing.name} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => { e.currentTarget.src = '/glass_default.png'; }}
+                      />
+                    </div>
+                  </TableCell>
                   <TableCell className="font-medium text-slate-900 dark:text-slate-100">{glazing.name}</TableCell>
                   <TableCell className="text-slate-700 dark:text-slate-300">{glazing.panes_count}</TableCell>
                   <TableCell className="text-slate-700 dark:text-slate-300">{glazing.thickness ?? '—'} mm</TableCell>
@@ -399,7 +410,7 @@ export default function GlazingManager() {
                 </TableRow>
               ))
             ) : (
-                <TableRow><TableCell colSpan={9} className="text-center p-8 text-slate-500 dark:text-slate-400">Nu s-au găsit tipuri de sticlă.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center p-8 text-slate-500 dark:text-slate-400">Nu s-au găsit tipuri de sticlă.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>

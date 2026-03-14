@@ -30,6 +30,17 @@
       },
       "description": "Caracteristici speciale (fonoizolantă, securitate, etc.)"
     },
+    "compatible_profiles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista de ID-uri de profiluri compatibile cu această sticlă"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "URL-ul imaginii asociate tipului de sticlă"
+    },
     "is_active": {
       "type": "boolean",
       "default": true
