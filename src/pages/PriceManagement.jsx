@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { unpackGlazingMeta } from '@/utils/glazingMeta';
 import { base44 } from '@/api/base44Client';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -136,7 +137,7 @@ export default function PriceManagement() {
         setMaterials(mat || []);
         setProfiles(prof || []);
         setColors(col || []);
-        setGlazingTypes(glaz || []);
+        setGlazingTypes((glaz || []).map(unpackGlazingMeta));
         setMechanisms(mech || []);
       } catch (error) {
         console.error("Failed to fetch data:", error);
@@ -184,10 +185,14 @@ export default function PriceManagement() {
     );
   }, [profiles, selectedMaterial]);
 
-  // Sticlă filtrată pe baza profilului (număr de foi)
+  // Sticlă filtrată pe baza profilului ales
   const filteredGlazingTypes = useMemo(() => {
     if (!selectedProfile) return glazingTypes;
-    return glazingTypes.filter(g => g.panes_count === selectedProfile.glass_panes_count);
+    return glazingTypes.filter(g => 
+      Array.isArray(g.compatible_profiles) 
+        ? g.compatible_profiles.includes(selectedProfile.id)
+        : g.panes_count === selectedProfile.glass_panes_count // fallback backwards compatible
+    );
   }, [glazingTypes, selectedProfile]);
 
   // Culori filtrate pe baza materialului
@@ -468,11 +473,11 @@ export default function PriceManagement() {
             total += mech.price_per_piece;
           }
           if (mech.price_per_linear_meter > 0) {
-            const mechCost = perimeter * mech.price_per_linear_meter;
+            const mechCost = sashPerimeter * mech.price_per_linear_meter;
             breakdown.push({
               category: `Mecanism Canat ${sashIndex + 1}`,
               item: `${mech.name} (per ml)`,
-              calc: `${perimeter.toFixed(2)} ml × ${mech.price_per_linear_meter} €/ml`,
+              calc: `${sashPerimeter.toFixed(2)} ml × ${mech.price_per_linear_meter} €/ml`,
               price: mechCost
             });
             total += mechCost;
@@ -770,9 +775,12 @@ export default function PriceManagement() {
             </div>
             <div>
               <Label>Sticlă</Label>
-              <div className="h-10 px-3 py-2 rounded-md border border-input bg-slate-100 dark:bg-slate-800 text-sm flex items-center">
-                {selectedGlazing ? selectedGlazing.name : (config.profile_id ? 'Din profil' : 'Alege profil')}
-              </div>
+              <Select value={config.glazing_id} onValueChange={(v) => handleConfigChange('glazing_id', v)} disabled={!config.profile_id}>
+                <SelectTrigger><SelectValue placeholder={config.profile_id ? "Selectează..." : "Alege profil"} /></SelectTrigger>
+                <SelectContent>
+                  {filteredGlazingTypes.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Culoare</Label>

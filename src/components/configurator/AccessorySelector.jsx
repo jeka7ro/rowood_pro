@@ -33,20 +33,20 @@ export default function AccessorySelector({ accessories = [], config, addAccesso
         </Card>
       )}
 
-      <div className="space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
         {Object.entries(grouped).map(([category, items]) => (
-          <div key={category} className="space-y-3">
+          <div key={category} className="space-y-4">
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="capitalize bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">{category.replaceAll("-", " ")}</Badge>
               <span className="text-slate-500 dark:text-slate-400 text-sm">({items.length})</span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               {items.map((acc) => {
                 const isSelected = selectedIds.includes(acc.id);
                 return (
                   <Card 
                     key={acc.id} 
-                    className={`border-2 rounded-3xl overflow-hidden transition-all ${
+                    className={`border-2 rounded-3xl overflow-hidden transition-all h-full flex flex-col ${
                       isSelected 
                         ? "border-blue-500 dark:border-blue-400 shadow-lg shadow-blue-500/20" 
                         : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
@@ -55,16 +55,18 @@ export default function AccessorySelector({ accessories = [], config, addAccesso
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base text-slate-900 dark:text-slate-100">{acc.name}</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3">
-                      {acc.image_url && (
-                        <div className="h-28 w-full rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800">
-                          <img src={acc.image_url} alt={acc.name} className="h-full w-full object-cover" />
-                        </div>
-                      )}
-                      {acc.description && (
-                        <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3">{acc.description}</p>
-                      )}
-                      <div className="flex items-center justify-between">
+                    <CardContent className="space-y-3 flex-1 flex flex-col justify-between">
+                      <div className="space-y-3">
+                        {acc.image_url && (
+                          <div className="h-28 w-full rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800">
+                            <img src={acc.image_url} alt={acc.name} className="h-full w-full object-cover" />
+                          </div>
+                        )}
+                        {acc.description && (
+                          <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3">{acc.description}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between pt-2 mt-auto border-t border-slate-100 dark:border-slate-800">
                         <span className="font-semibold text-slate-900 dark:text-slate-100">
                           {Number(acc.price || 0).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}
                         </span>

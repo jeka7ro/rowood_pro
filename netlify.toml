@@ -3,6 +3,12 @@
   publish = "dist"
 
 [[redirects]]
+  from = "/api/anaf"
+  to = "https://webservicesp.anaf.ro/api/PlatitorTvaRest/v9/tva"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

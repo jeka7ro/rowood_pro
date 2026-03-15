@@ -1,0 +1,4 @@
+{
+  "name": "validate-anaf",
+  "handler": "main.ts"
+}

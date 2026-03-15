@@ -33,10 +33,9 @@ export default function PaymentPage() {
 
         setOrderId(orderIdFromUrl);
 
-        // Load order and processors
         const [orderData, processorsData] = await Promise.all([
           base44.entities.Order.filter({ id: orderIdFromUrl }),
-          base44.entities.PaymentProcessor.filter({ is_active: true }, 'priority_order', 50)
+          base44.entities.PaymentProcessor.filter({ is_active: true }, 'priority_order', 50).catch(() => []) // Handle DB read errors
         ]);
 
         if (!orderData || orderData.length === 0) {
@@ -46,14 +45,38 @@ export default function PaymentPage() {
         }
 
         setOrder(orderData[0]);
-        setProcessors(processorsData);
+
+        // Fallback processors in case the DB call fails or table is empty
+        const defaultProcessors = [
+          {
+            id: 'processor_transfer',
+            processor_name: 'transfer_bancar',
+            display_name: 'Transfer Bancar (OP)',
+            description: 'Plătiți direct în contul nostru bancar. Comanda va fi procesată după confirmarea plății.',
+            is_active: true,
+            is_default: true,
+            environment: 'production'
+          },
+          {
+            id: 'processor_stripe',
+            processor_name: 'stripe',
+            display_name: 'Card de Credit/Debit (Stripe)',
+            description: 'Plată securizată prin Stripe folosind cardul dumneavoastră personal.',
+            is_active: true,
+            is_default: false,
+            environment: 'production'
+          }
+        ];
+
+        const finalProcessors = processorsData && processorsData.length > 0 ? processorsData : defaultProcessors;
+        setProcessors(finalProcessors);
 
         // Set default processor
-        const defaultProc = processorsData.find(p => p.is_default);
+        const defaultProc = finalProcessors.find(p => p.is_default);
         if (defaultProc) {
           setSelectedProcessor(defaultProc.id);
-        } else if (processorsData.length > 0) {
-          setSelectedProcessor(processorsData[0].id);
+        } else if (finalProcessors.length > 0) {
+          setSelectedProcessor(finalProcessors[0].id);
         }
 
       } catch (err) {

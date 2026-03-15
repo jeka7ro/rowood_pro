@@ -228,37 +228,34 @@ export default function PaymentSuccessPage() {
                 )}
 
                 <div className="bg-slate-50 rounded-lg p-6 border-2 border-slate-200">
-                  <h3 className="font-semibold text-slate-800 mb-3">📦 Ce urmează?</h3>
+                  <h3 className="font-semibold text-slate-800 mb-3">Ce urmează?</h3>
                   <ol className="list-decimal list-inside space-y-2 text-sm text-slate-700">
-                    <li>✅ Ai primit email de confirmare cu toate detaliile</li>
-                    <li>🏗️ Comanda ta a intrat în producție</li>
-                    <li>📞 Echipa noastră te va contacta pentru confirmarea finală</li>
-                    <li>📋 Vei primi factură proformă pentru evidență</li>
-                    <li>🚚 Livrare estimată: 21-28 zile lucrătoare</li>
+                    <li>Ai primit email de confirmare cu toate detaliile</li>
+                    <li>Comanda ta a intrat în producție</li>
+                    <li>Echipa noastră te va contacta pentru confirmarea finală</li>
+                    <li>Vei primi factură proformă pentru evidență</li>
+                    <li>Livrare estimată: 21-28 zile lucrătoare</li>
                   </ol>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4 pt-6">
+                <div className="flex flex-col sm:flex-row justify-center flex-wrap gap-4 pt-6">
                   <Button
                     onClick={() => window.open(`${createPageUrl('OrderPDF')}?order_id=${order.id}`, '_blank')}
                     variant="outline"
-                    className="flex-1"
+                    className="w-full sm:w-auto"
                     size="lg"
                   >
-                    <Download className="w-5 h-5 mr-2" />
                     Descarcă Confirmarea (PDF)
                   </Button>
                   
-                  <Button asChild className="flex-1 bg-green-600 hover:bg-green-700" size="lg">
+                  <Button asChild className="w-full sm:w-auto bg-green-600 hover:bg-green-700" size="lg">
                     <Link to={createPageUrl('MyOrders')}>
-                      <Package className="w-5 h-5 mr-2" />
                       Vezi Comenzile Mele
                     </Link>
                   </Button>
                   
-                  <Button asChild variant="outline" className="flex-1" size="lg">
+                  <Button asChild variant="outline" className="w-full sm:w-auto" size="lg">
                     <Link to={createPageUrl('Home')}>
-                      <Home className="w-5 h-5 mr-2" />
                       Pagina Principală
                     </Link>
                   </Button>

@@ -76,11 +76,12 @@ export default function GlazingSelector({ glazingTypes = [], config, updateConfi
                 )}
                 
                 {/* Imagine sticlă */}
-                <div className="mb-3 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 h-28 flex items-center justify-center">
+                <div className="mb-4 rounded-xl overflow-hidden h-48 w-full flex items-center justify-center relative">
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-slate-50/50 dark:to-slate-900/50 pointer-events-none" />
                   <img 
                     src={glazing.image_url || '/glass_default.png'} 
                     alt={glazing.name} 
-                    className="h-full w-full object-cover" 
+                    className="h-full w-auto max-w-full object-contain drop-shadow-md transition-transform hover:scale-105" 
                     onError={(e) => { e.target.src = '/glass_default.png'; }}
                   />
                 </div>

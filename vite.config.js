@@ -16,6 +16,13 @@ export default defineConfig({
     https: false,
     // Fix HTTP 431 (Request Header Fields Too Large) - increase header size limit
     hmr: true,
+    proxy: {
+      '/api/anaf': {
+        target: 'https://webservicesp.anaf.ro',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/anaf/, '/api/PlatitorTvaRest/v9/tva')
+      }
+    }
   },
   resolve: {
     alias: {

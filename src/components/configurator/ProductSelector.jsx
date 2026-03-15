@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, ArrowLeft, LayoutGrid, DoorOpen, Maximize2, Home } from 'lucide-react';
 
 // SVG realist pentru Fereastră Standard (1 canat)
 const SingleWindowSVG = () => (
@@ -338,18 +338,107 @@ const getProductSVG = (product) => {
 };
 
 export default function ProductSelector({ products, config, updateConfig }) {
+  const [selectedCategory, setSelectedCategory] = useState(null);
+
+  // Initialize category if a product is already selected (e.g., from Home Page)
+  useEffect(() => {
+    if (config.product_id && !selectedCategory) {
+      const prod = products.find(p => p.id === config.product_id);
+      if (prod) {
+        if (prod.category === 'usi-balcon' || prod.name?.toLowerCase().includes('balcon')) setSelectedCategory('usi-balcon');
+        else if (prod.category === 'usi' && !prod.name?.toLowerCase().includes('culisant')) setSelectedCategory('usi-intrare');
+        else if (prod.name?.toLowerCase().includes('culisant') || prod.supports_sliding) setSelectedCategory('culisant');
+        else setSelectedCategory('ferestre');
+      }
+    }
+  }, [config.product_id, products, selectedCategory]);
+
+  const categories = [
+    { id: 'ferestre', title: 'Ferestre', desc: 'Sisteme clasice de la 1 la 3 canaturi', icon: LayoutGrid, svg: <SingleWindowSVG /> },
+    { id: 'usi-balcon', title: 'Uși de Balcon', desc: 'Pentru terase și balcoane', icon: DoorOpen, svg: <BalconyDoorSVG /> },
+    { id: 'culisant', title: 'Culisante / Terasă', desc: 'Uși duble sau glisante mari', icon: Maximize2, svg: <SlidingDoorSVG /> },
+    { id: 'usi-intrare', title: 'Uși de Intrare', desc: 'Design elegant și securitate', icon: Home, svg: <EntryDoorSVG /> }
+  ];
+
+  const handleSelectCategory = (catId) => {
+    setSelectedCategory(catId);
+    // Optional: reset product if switching category
+    // updateConfig('product_id', null);
+  };
+
+  const handleBack = () => {
+    setSelectedCategory(null);
+  };
+
+  const filteredProducts = products.filter(product => {
+    const name = product?.name?.toLowerCase() || '';
+    const cat = product?.category || '';
+    
+    if (selectedCategory === 'usi-intrare') return cat === 'usi' && !name.includes('balcon') && !name.includes('culisant');
+    if (selectedCategory === 'usi-balcon') return cat === 'usi-balcon' || name.includes('balcon');
+    if (selectedCategory === 'culisant') return name.includes('culisant') || product?.supports_sliding;
+    if (selectedCategory === 'ferestre') return cat !== 'usi' && cat !== 'usi-balcon' && !name.includes('culisant') && !product?.supports_sliding;
+    
+    return true; // fallback
+  });
+
   return (
     <div className="max-w-7xl mx-auto">
-      <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2 text-center">Alege Tipul de Produs</h3>
-      <p className="text-slate-600 dark:text-slate-400 mb-8 text-center max-w-3xl mx-auto">
-        Selectează categoria și modelul dorit pentru a continua configurația ta personalizată.
-      </p>
+      {!selectedCategory ? (
+        <>
+          <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2 text-center">Pasul 1. Alege Categoria</h3>
+          <p className="text-slate-600 dark:text-slate-400 mb-8 text-center max-w-3xl mx-auto">
+            Selectează o categorie principală de tâmplărie pentru a vedea variantele și formele disponibile.
+          </p>
 
-      <div className="flex flex-wrap justify-center gap-5">
-        {products.map((product) => {
-          const isSelected = product.id === config.product_id;
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {categories.map((cat) => (
+              <div
+                key={cat.id}
+                onClick={() => handleSelectCategory(cat.id)}
+                className="cursor-pointer group flex flex-col liquid-glass bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 border-2 border-transparent hover:border-green-500 rounded-[24px] transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 overflow-hidden"
+              >
+                <div className="relative aspect-[4/3] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 p-6 sm:p-8 flex items-center justify-center">
+                  <div className="w-28 h-28 sm:w-32 sm:h-32 flex items-center justify-center transform transition-transform duration-500 group-hover:scale-110">
+                    {cat.svg}
+                  </div>
+                </div>
+                <div className="p-5 flex-1 flex flex-col border-t border-slate-100 dark:border-slate-700/50 text-center">
+                  <div className="w-10 h-10 mx-auto rounded-[14px] bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-3">
+                    <cat.icon className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  </div>
+                  <h4 className="font-bold text-lg text-slate-900 dark:text-slate-100 mb-2">{cat.title}</h4>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 flex-1">{cat.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+            <button 
+              onClick={handleBack}
+              className="group flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 transition-colors bg-white/50 dark:bg-slate-800/50 px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+              Înapoi
+            </button>
+            <div className="text-center sm:text-right">
+              <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Alege Forma</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Variante pentru {categories.find(c => c.id === selectedCategory)?.title}</p>
+            </div>
+          </div>
 
-          return (
+          <div className="flex flex-wrap justify-center gap-5">
+            {filteredProducts.length === 0 ? (
+               <div className="w-full text-center py-12 px-4 rounded-[24px] border-2 border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                 <p className="text-slate-500 dark:text-slate-400">Nu am găsit produse active în această categorie.</p>
+               </div>
+            ) : filteredProducts.map((product) => {
+              const isSelected = product.id === config.product_id;
+
+              return (
             <div
               key={product.id}
               onClick={() => updateConfig('product_id', product.id)}
@@ -370,12 +459,12 @@ export default function ProductSelector({ products, config, updateConfig }) {
                 )}
                 {product.is_featured && (
                   <div className="absolute top-2 left-2">
-                    <Badge className="bg-green-600 text-white text-xs px-2 py-1 rounded-none">Top</Badge>
+                    <Badge variant="default" className="bg-green-600 text-white text-xs px-2 py-1 rounded-none">Top</Badge>
                   </div>
                 )}
                 {product.is_on_promotion && (
                   <div className="absolute bottom-2 left-2">
-                    <Badge className="bg-red-600 text-white text-xs px-2 py-1 rounded-none">Promoție</Badge>
+                    <Badge variant="destructive" className="bg-red-600 text-white text-xs px-2 py-1 rounded-none">Promoție</Badge>
                   </div>
                 )}
               </div>
@@ -386,7 +475,9 @@ export default function ProductSelector({ products, config, updateConfig }) {
             </div>
           );
         })}
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

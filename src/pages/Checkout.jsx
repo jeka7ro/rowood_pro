@@ -90,6 +90,13 @@ export default function CheckoutPage() {
   });
   const [isVatExempt, setIsVatExempt] = useState(false);
 
+  // State pentru validare ANAF (firme România)
+  const [anafValidation, setAnafValidation] = useState({
+    isValidating: false,
+    isValid: null,
+    error: null
+  });
+
   const showAlert = (title, message) => {
     setAlertDialog({ isOpen: true, title, message });
   };
@@ -212,11 +219,88 @@ export default function CheckoutPage() {
     }
   };
 
-  // Resetează validarea VAT când se schimbă prefixul sau numărul
+  // Resetează validarea VAT și ANAF când se schimbă prefixul sau numărul
   useEffect(() => {
     setVatValidation({ isValidating: false, isValid: null, companyName: null, companyAddress: null, error: null });
+    setAnafValidation({ isValidating: false, isValid: null, error: null });
     setIsVatExempt(false);
   }, [formData.cui_prefix, formData.cui_number]);
+
+  // Funcție de Căutare Automată Firmă RO
+  const validateAnafCui = async (cuiNumber) => {
+    if (!cuiNumber || cuiNumber.length < 2) return;
+    
+    setAnafValidation({ isValidating: true, isValid: null, error: null });
+
+    try {
+      const cleanCui = cuiNumber.toString().replace(/[^0-9]/g, '');
+      const today = new Date().toISOString().split('T')[0];
+      const payload = [{ cui: parseInt(cleanCui, 10), data: today }];
+
+      const response = await fetch('/api/anaf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error('Eroare HTTP de la proxy');
+      }
+
+      const data = await response.json();
+
+      // API-ul ANAF v9 returnează direct array-ul 'found' fără status 'cod' de bază
+      if (data.found && data.found.length > 0) {
+        const companyData = data.found[0].date_generale;
+
+        setAnafValidation({
+          isValidating: false,
+          isValid: true,
+          error: null
+        });
+
+        setFormData(prev => {
+          const updates = { ...prev };
+          if (companyData.denumire) updates.company_name = companyData.denumire;
+          if (companyData.nrRegCom) updates.reg_com = companyData.nrRegCom;
+
+          if (companyData.adresa) {
+            updates.billing_address = { ...prev.billing_address };
+            const parts = companyData.adresa.split(',');
+            if (parts.length > 0) {
+               updates.billing_address.city = parts[0].trim();
+               updates.billing_address.street = parts.slice(1).join(',').trim() || companyData.adresa;
+            } else {
+               updates.billing_address.street = companyData.adresa;
+            }
+          }
+          return updates;
+        });
+      } else {
+        setAnafValidation({
+          isValidating: false,
+          isValid: false,
+          error: 'CUI invalid sau inexistent la ANAF.'
+        });
+      }
+    } catch (error) {
+      console.error('ANAF validation error:', error);
+      setAnafValidation({
+        isValidating: false,
+        isValid: false,
+        error: 'Eroare la conectarea cu ANAF.'
+      });
+    }
+  };
+
+  const handleCuiBlur = (e) => {
+    const cuiVal = e.target.value.trim();
+    if (formData.cui_prefix === 'RO' && cuiVal.length >= 2) {
+       validateAnafCui(cuiVal);
+    }
+  };
 
   useEffect(() => {
     const loadCart = async () => {
@@ -550,9 +634,27 @@ export default function CheckoutPage() {
                             className="flex-1 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100"
                             value={formData.cui_number}
                             onChange={(e) => setFormData({ ...formData, cui_number: e.target.value })}
+                            onBlur={handleCuiBlur}
                             placeholder={formData.cui_prefix === 'RO' ? '12345678' : 'VAT Number'}
                           />
                         </div>
+
+                        {/* Rezultat validare ANAF pt RO */}
+                        {formData.cui_prefix === 'RO' && anafValidation.isValidating && (
+                           <div className="mt-2 text-sm text-slate-500 flex items-center gap-2">
+                             <Loader2 className="w-4 h-4 animate-spin" /> Se preiau datele de la ANAF...
+                           </div>
+                        )}
+                        {formData.cui_prefix === 'RO' && anafValidation.isValid === true && (
+                           <div className="mt-2 text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
+                             <CheckCircle2 className="w-4 h-4" /> Datele companiei au fost completate automat.
+                           </div>
+                        )}
+                        {formData.cui_prefix === 'RO' && anafValidation.isValid === false && (
+                           <div className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+                             <XCircle className="w-4 h-4" /> {anafValidation.error}
+                           </div>
+                        )}
                         
                         {/* Buton verificare VAT pentru țări UE (nu RO) */}
                         {formData.cui_prefix !== 'RO' && formData.cui_number && (
