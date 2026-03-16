@@ -488,6 +488,7 @@ export default function CheckoutPage() {
           const product = products.find(p => p.id === item.product_id);
           const material = materials.find(m => m.id === config.material_id);
           const glazing = glazingTypes.find(g => g.id === config.glazing_id);
+          const color = colors.find(c => c.id === config.color_id);
           return {
             product_name: product?.name || item.product_name || 'Produs',
             width: config.width || 800,
@@ -498,6 +499,9 @@ export default function CheckoutPage() {
             sash_configs: config.sash_configs || [],
             opening_type_summary: config.opening_type_summary || '',
             price: item.price || 0,
+            color_name: color?.name || config.color_name || '',
+            color_hex: color?.hex_code || config.color_hex || '',
+            image_url: config.image_url || item.image_url || '',
           };
         });
 

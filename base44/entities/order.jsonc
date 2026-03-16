@@ -144,6 +144,27 @@
     "vat_country": {
       "type": "string",
       "description": "Codul țării pentru VAT UE (ex: DE, FR, IT)"
+    },
+    "configuration_snapshots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "product_name": { "type": "string" },
+          "width": { "type": "number" },
+          "height": { "type": "number" },
+          "quantity": { "type": "number" },
+          "material_name": { "type": "string" },
+          "glazing_name": { "type": "string" },
+          "sash_configs": { "type": "array" },
+          "opening_type_summary": { "type": "string" },
+          "price": { "type": "number" },
+          "color_name": { "type": "string" },
+          "color_hex": { "type": "string" },
+          "image_url": { "type": "string" }
+        }
+      },
+      "description": "Snapshot-uri configurații pentru producție (FactoryManager)"
     }
   },
   "required": [
