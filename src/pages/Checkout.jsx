@@ -518,6 +518,7 @@ export default function CheckoutPage() {
           delivery_address: formData.use_billing_for_delivery ? formData.billing_address : formData.delivery_address,
           configurations: savedConfigurations.map(config => config.id),
           configuration_snapshots: configuration_snapshots,
+          notes: '[CONFIG_SNAPSHOTS]' + JSON.stringify(configuration_snapshots),
           total_amount: finalTotal,
           transport_cost: isVatExempt ? transportInstallationTotal / 1.21 : transportInstallationTotal,
           extra_total: isVatExempt ? transportInstallationTotal / 1.21 : transportInstallationTotal,

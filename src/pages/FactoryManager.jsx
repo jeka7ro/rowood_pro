@@ -394,8 +394,20 @@ export default function FactoryManager() {
     setIsLoadingConfigs(true);
     try {
       // STRATEGY 0 (BEST): Use configuration_snapshots embedded on Order (new orders)
-      if (Array.isArray(order.configuration_snapshots) && order.configuration_snapshots.length > 0) {
-        setResolvedItems(order.configuration_snapshots);
+      // Check direct field first, then try JSON encoded in notes
+      let snapshots = order.configuration_snapshots;
+      if (!Array.isArray(snapshots) || snapshots.length === 0) {
+        // Try parsing from notes field (base44 workaround - notes is a string field that persists)
+        if (order.notes && typeof order.notes === 'string' && order.notes.startsWith('[CONFIG_SNAPSHOTS]')) {
+          try {
+            snapshots = JSON.parse(order.notes.replace('[CONFIG_SNAPSHOTS]', ''));
+          } catch(e) {
+            console.warn('Failed to parse config snapshots from notes:', e);
+          }
+        }
+      }
+      if (Array.isArray(snapshots) && snapshots.length > 0) {
+        setResolvedItems(snapshots);
         setIsLoadingConfigs(false);
         return;
       }
