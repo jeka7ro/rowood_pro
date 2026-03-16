@@ -122,22 +122,49 @@ const AdvancedBOMEngine = (item, techSettings = DEFAULT_TECH_SETTINGS) => {
 
 // --- COMPONENTĂ GRAFICĂ TEHNICĂ (Planșă) ---
 // @ts-ignore
-const TechnicalDrawing = ({ w, h, isFix, isDoor, summary }) => {
+const TechnicalDrawing = ({ w, h, isFix, isDoor, summary, sashConfigs, productName }) => {
   const scale = Math.min(300 / w, 400 / h);
   const drawW = w * scale;
   const drawH = h * scale;
   
-  // Proporții vizuale false dar sugestive pentru SVG
   const frameThick = 25; 
   const sashThick = 20;
+  const mullionW = 12; // montant intermediar
   
-  // Pentru uși, mânerul e fixat la cota de 1050mm, altfel la jumătate
-  const handleYPos = isDoor ? drawH - (1050 * scale) : drawH/2;
+  // Determinare număr canaturi din: sash_configs > product_name > default 1
+  let numSashes = 1;
+  if (Array.isArray(sashConfigs) && sashConfigs.length > 0) {
+    numSashes = sashConfigs.length;
+  } else if (productName) {
+    const pn = productName.toLowerCase();
+    if (pn.includes('tripl')) numSashes = 3;
+    else if (pn.includes('dubl') || pn.includes('double')) numSashes = 2;
+  }
+  if (isFix) numSashes = 1; // fix = un singur panou
+
+  // Calcul lățime per canat
+  const innerW = drawW - frameThick * 2;
+  const totalMullions = numSashes - 1;
+  const sashWidth = (innerW - totalMullions * mullionW) / numSashes;
+  
+  const handleYPos = isDoor ? drawH - (1050 * scale) : drawH / 2;
+  const bottomFrame = isDoor ? 10 : frameThick;
+  const innerH = drawH - frameThick - bottomFrame;
+
+  // Build sash rectangles
+  const sashes = [];
+  for (let i = 0; i < numSashes; i++) {
+    const x = frameThick + i * (sashWidth + mullionW);
+    const sashConf = sashConfigs?.[i] || {};
+    const openType = sashConf.opening_type || (i === 0 ? 'turn' : 'tilt_turn');
+    const hingeSide = sashConf.hinge_side || (i === 0 ? 'left' : 'right');
+    sashes.push({ x, w: sashWidth, openType, hingeSide, index: i });
+  }
 
   return (
     <div className="relative border-4 border-dashed border-slate-200 rounded-xl bg-slate-50 flex flex-col items-center justify-center p-8 h-full min-h-[500px]">
       <div className="relative mb-12">
-         {/* EXTERIOR (Gabarit Total) Cotă Top */}
+         {/* Cotă exterioară TOP */}
          <div className="absolute -top-12 left-0 right-0 flex items-center justify-center">
             <div className="h-[1px] w-full bg-blue-600 relative opacity-60">
                <div className="absolute left-0 -top-1.5 w-[1px] h-3 bg-blue-600"></div>
@@ -146,7 +173,7 @@ const TechnicalDrawing = ({ w, h, isFix, isDoor, summary }) => {
             <span className="absolute -top-6 text-sm font-black text-blue-700 bg-slate-50 px-2 rounded-full border border-blue-100">{w} mm</span>
          </div>
          
-         {/* EXTERIOR (Gabarit Total) Cotă Dreapta */}
+         {/* Cotă exterioară DREAPTA */}
          <div className="absolute top-0 bottom-0 -right-12 flex flex-col items-center justify-center">
             <div className="w-[1px] h-full bg-blue-600 relative opacity-60">
                <div className="absolute top-0 -left-1.5 h-[1px] w-3 bg-blue-600"></div>
@@ -155,7 +182,7 @@ const TechnicalDrawing = ({ w, h, isFix, isDoor, summary }) => {
             <span className="absolute -right-16 text-sm font-black text-blue-700 bg-slate-50 px-2 rounded-full border border-blue-100 rotate-90">{h} mm</span>
          </div>
 
-         {/* INTERIOR Cotă (Cercevea sau Lumină) Top - Dacă avem spațiu vizual */}
+         {/* Cotă interioară TOP */}
          {summary && (
            <div className="absolute -top-5 left-[25px] right-[25px] flex items-center justify-center z-10">
               <div className="h-[1px] w-full bg-emerald-500 relative opacity-70">
@@ -166,46 +193,71 @@ const TechnicalDrawing = ({ w, h, isFix, isDoor, summary }) => {
            </div>
          )}
          
-         {/* The Drawing SVG */}
+         {/* SVG Drawing */}
          <svg width={drawW} height={drawH} className="drop-shadow-xl overflow-visible">
-            {/* Outer Frame (Toc) */}
+            {/* Cadru exterior (Toc) */}
             <rect x="0" y="0" width={drawW} height={drawH} fill="#f8fafc" stroke="#475569" strokeWidth="2" />
             
-            {/* Falț Toc (Lumina) - Lăsăm prag de aluminiu la uși jos */}
-            <rect x={frameThick} y={frameThick} width={drawW - frameThick*2} height={drawH - frameThick - (isDoor ? 10 : frameThick)} fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" strokeDasharray="2 2" />
+            {/* Lumina ramei */}
+            <rect x={frameThick} y={frameThick} width={innerW} height={innerH} fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" strokeDasharray="2 2" />
             
             {isDoor && (
-              <>
-                {/* Prag aluminiu jos pentru uși */}
-                <rect x={frameThick} y={drawH - 10} width={drawW - frameThick*2} height={10} fill="#cbd5e1" stroke="#94a3b8" strokeWidth="1" />
-              </>
+              <rect x={frameThick} y={drawH - 10} width={innerW} height={10} fill="#cbd5e1" stroke="#94a3b8" strokeWidth="1" />
             )}
             
-            {/* Sash (Cercevea) if not fix */}
-            {!isFix && (
-              <>
-                 {/* Gabarit Cercevea (Overlap peste ramă) */}
-                 <rect x={frameThick - 4} y={frameThick - 4} width={drawW - (frameThick-4)*2} height={drawH - (frameThick-4) - (isDoor ? 8 : frameThick-4)} fill="#ffffff" stroke="#64748b" strokeWidth="1.5" />
-                 
-                 {/* Sticlă Cercevea */}
-                 <rect x={frameThick + sashThick} y={frameThick + sashThick} width={drawW - (frameThick+sashThick)*2} height={drawH - (frameThick+sashThick) - (isDoor ? 8 + sashThick : frameThick+sashThick)} fill="#bae6fd" stroke="#7dd3fc" strokeWidth="1" opacity="0.8" />
-                 
-                 {/* Mâner de Operare */}
-                 <rect x={drawW - frameThick*1.2} y={handleYPos - 15} width={4} height={isDoor ? 50 : 30} fill="#334155" rx="2" />
-                 
-                 {/* Linii Deschidere (Balamale în dreapta, deschidere spre stânga = standard) */}
-                 <polygon points={`${frameThick-4},${handleYPos} ${drawW - frameThick+4},${frameThick-4} ${drawW - frameThick+4},${drawH - (isDoor ? 8 : frameThick-4)}`} fill="none" stroke="#64748b" strokeWidth="1" strokeDasharray="5 5" opacity="0.6"/>
-              </>
-            )}
+            {/* Montanți intermediari (mullions) */}
+            {Array.from({ length: totalMullions }).map((_, mi) => {
+              const mx = frameThick + (mi + 1) * sashWidth + mi * mullionW;
+              return (
+                <rect key={`mullion-${mi}`} x={mx} y={frameThick} width={mullionW} height={innerH} fill="#e2e8f0" stroke="#475569" strokeWidth="1.5" />
+              );
+            })}
 
-             {isFix && (
-               <>
-                 {/* Sticlă Fixă */}
-                 <rect x={frameThick + 5} y={frameThick + 5} width={drawW - (frameThick+5)*2} height={drawH - (frameThick+5) - (isDoor ? 15 : frameThick+5)} fill="#bae6fd" stroke="#7dd3fc" strokeWidth="1" opacity="0.8" />
-               </>
-             )}
+            {/* Canaturi */}
+            {!isFix && sashes.map((sash) => {
+              const sy = frameThick - 4;
+              const sh = innerH + 8;
+              const sx = sash.x - 4;
+              const sw = sash.w + 8;
+              const glassX = sash.x + sashThick;
+              const glassY = frameThick + sashThick;
+              const glassW = sash.w - sashThick * 2;
+              const glassH = innerH - sashThick * 2;
+              const midY = frameThick + innerH / 2;
+              
+              // Handle position
+              const hx = sash.hingeSide === 'left' ? sash.x + sash.w - 6 : sash.x + 2;
+              const hy = isDoor ? drawH - (1050 * scale) - 15 : midY - 15;
+              
+              // Opening lines
+              let openingPoints = '';
+              if (sash.hingeSide === 'left') {
+                // Balamale stânga, mâner dreapta
+                openingPoints = `${sash.x + sash.w + 4},${midY} ${sash.x - 4},${sy} ${sash.x - 4},${sy + sh}`;
+              } else {
+                // Balamale dreapta, mâner stânga
+                openingPoints = `${sash.x - 4},${midY} ${sash.x + sash.w + 4},${sy} ${sash.x + sash.w + 4},${sy + sh}`;
+              }
+              
+              return (
+                <g key={`sash-${sash.index}`}>
+                  {/* Cercevea (gabarit) */}
+                  <rect x={sx} y={sy} width={sw} height={sh} fill="#ffffff" stroke="#64748b" strokeWidth="1.5" />
+                  {/* Sticlă */}
+                  <rect x={glassX} y={glassY} width={glassW} height={glassH} fill="#bae6fd" stroke="#7dd3fc" strokeWidth="1" opacity="0.8" />
+                  {/* Mâner */}
+                  <rect x={hx} y={hy} width={4} height={isDoor ? 50 : 30} fill="#334155" rx="2" />
+                  {/* Linii deschidere */}
+                  <polygon points={openingPoints} fill="none" stroke="#64748b" strokeWidth="1" strokeDasharray="5 5" opacity="0.5" />
+                </g>
+              );
+            })}
+
+            {isFix && (
+              <rect x={frameThick + 5} y={frameThick + 5} width={innerW - 10} height={innerH - 10} fill="#bae6fd" stroke="#7dd3fc" strokeWidth="1" opacity="0.8" />
+            )}
             
-            {/* Diagonale sudură ramă exterioară */}
+            {/* Diagonale sudură */}
             <line x1="0" y1="0" x2={frameThick} y2={frameThick} stroke="#94a3b8" strokeWidth="1" />
             <line x1={drawW} y1="0" x2={drawW - frameThick} y2={frameThick} stroke="#94a3b8" strokeWidth="1" />
             <line x1="0" y1={drawH} x2={frameThick} y2={drawH - frameThick} stroke="#94a3b8" strokeWidth="1" />
@@ -213,7 +265,7 @@ const TechnicalDrawing = ({ w, h, isFix, isDoor, summary }) => {
          </svg>
       </div>
       
-      {/* Detalii Tabelare sub desen */}
+      {/* Detalii Tabelare */}
       {summary && (
         <div className="w-full max-w-sm mt-8 border border-slate-200 rounded-lg overflow-hidden bg-white text-xs">
            <div className="bg-slate-100 px-3 py-2 font-bold text-slate-700 border-b border-slate-200 flex justify-between">
@@ -226,6 +278,9 @@ const TechnicalDrawing = ({ w, h, isFix, isDoor, summary }) => {
                <div className="px-3 py-1.5 flex justify-between"><span className="text-slate-500">Lățime Totală Cercevea:</span> <span className="font-mono font-bold text-emerald-700">{summary.cerceveaNet.w}</span></div>
              )}
              <div className="px-3 py-1.5 flex justify-between bg-cyan-50/50"><span className="text-slate-600 font-medium">Cotă Tăiere Sticlă:</span> <span className="font-mono font-black text-cyan-800">{summary.sticlaCut.w} × {summary.sticlaCut.h}</span></div>
+             {numSashes > 1 && (
+               <div className="px-3 py-1.5 flex justify-between bg-amber-50/50"><span className="text-slate-600 font-medium">Canaturi:</span> <span className="font-mono font-bold text-amber-800">{numSashes} buc</span></div>
+             )}
            </div>
         </div>
       )}
@@ -752,7 +807,7 @@ export default function FactoryManager() {
                    <div className={`animate-in fade-in duration-300 ${activeTab === 'grafica' ? 'block' : 'hidden print:block'}`}>
                       <div className="print:pb-8">
                         <h3 className="hidden print:flex text-lg font-bold mb-4 items-center gap-2"><Ruler className="w-5 h-5"/> Planșă Tehnică & Cote</h3>
-                        <TechnicalDrawing w={activeItem.width} h={activeItem.height} isFix={isFix} isDoor={isDoor} summary={bomData.summary} />
+                        <TechnicalDrawing w={activeItem.width} h={activeItem.height} isFix={isFix} isDoor={isDoor} summary={bomData.summary} sashConfigs={activeItem.sash_configs} productName={activeItem.product_name} />
                       </div>
                    </div>
 
