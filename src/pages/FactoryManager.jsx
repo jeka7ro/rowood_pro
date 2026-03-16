@@ -480,7 +480,7 @@ export default function FactoryManager() {
   // UI State pt Master-Detail
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [activeItemIndex, setActiveItemIndex] = useState(0);
-  const [activeTab, setActiveTab] = useState('grafica'); // grafica | taiere | sticla | feronerie
+  const [activeTab, setActiveTab] = useState('taiere'); // taiere | sticla | feronerie | etichete
 
   // State Setări Tehnologice (Persistente)
   const [techSettings, setTechSettings] = useState(() => {
@@ -713,7 +713,7 @@ export default function FactoryManager() {
                 <div 
                   key={order.id} 
                   className="p-4 sm:p-6 hover:bg-slate-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4 group cursor-pointer"
-                  onClick={() => { setSelectedOrder(order); setActiveItemIndex(0); setActiveTab('grafica'); loadOrderConfigurations(order); }}
+                  onClick={() => { setSelectedOrder(order); setActiveItemIndex(0); setActiveTab('taiere'); loadOrderConfigurations(order); }}
                 >
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 rounded-lg bg-slate-100 items-center justify-center border border-slate-200 flex shrink-0">
@@ -814,7 +814,7 @@ export default function FactoryManager() {
             {orderItems.map((item, idx) => (
               <div 
                 key={idx} 
-                onClick={() => { setActiveItemIndex(idx); setActiveTab('grafica'); }}
+                onClick={() => { setActiveItemIndex(idx); setActiveTab('taiere'); }}
                 className={`p-4 cursor-pointer transition-all border-l-4 ${idx === activeItemIndex ? 'bg-blue-50/50 border-blue-600' : 'border-transparent hover:bg-slate-50'}`}
               >
                 <div className="flex justify-between items-start mb-1">
@@ -829,33 +829,105 @@ export default function FactoryManager() {
         </div>
 
         {/* WORKSPACE - DETAILS (Detail) */}
-        <div className="flex-1 bg-slate-50/50 overflow-y-auto p-4 md:p-8">
+        <div className="flex-1 bg-slate-50/50 overflow-y-auto p-4 md:p-6">
            {activeItem && bomData && (
-             <div className="max-w-5xl mx-auto space-y-6">
+             <div className="max-w-6xl mx-auto space-y-5">
                
-               {/* ITEM SUMMARY HEADER */}
-               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-6 print:border-b-2 print:rounded-none print:shadow-none">
-                 <div>
-                   <h1 className="text-2xl font-bold text-slate-900 mb-1">Poziția {activeItemIndex + 1}: {activeItem.product_name}</h1>
-                   <div className="flex gap-4 text-sm text-slate-600 mt-3">
-                     <span className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded-md"><Ruler className="w-4 h-4 text-blue-600"/> L: {activeItem.width} x H: {activeItem.height} mm</span>
-                     <span className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded-md"><Layers className="w-4 h-4 text-emerald-600"/> {activeItem.material_name}</span>
+               {/* ═══ HEADER + QUICK SPECS ═══ */}
+               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                 {/* Product title bar */}
+                 <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white px-6 py-4 flex items-center justify-between">
+                   <div>
+                     <h1 className="text-xl font-bold">Poz. {activeItemIndex + 1} — {activeItem.product_name}</h1>
+                     <p className="text-slate-300 text-sm mt-1">{activeItem.material_name} • {activeItem.glazing_name || 'Sticlă Standard'} {activeItem.color_name ? `• ${activeItem.color_name}` : ''}</p>
+                   </div>
+                   <div className="text-right">
+                     <p className="text-3xl font-black">{activeItem.quantity}<span className="text-sm font-medium text-slate-400 ml-1">buc</span></p>
                    </div>
                  </div>
-                 <div className="text-left sm:text-right border-t sm:border-none pt-4 sm:pt-0">
-                    <p className="text-xs text-slate-400 font-bold uppercase mb-1">Volum</p>
-                    <p className="text-3xl font-black text-slate-800">{activeItem.quantity} <span className="text-lg text-slate-400 font-medium">UNITĂȚI</span></p>
+
+                 {/* Quick spec grid */}
+                 <div className="grid grid-cols-2 md:grid-cols-5 divide-x divide-slate-100 border-b border-slate-100">
+                   <div className="p-4 text-center">
+                     <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Gabarit</p>
+                     <p className="text-lg font-black text-slate-800 mt-1">{activeItem.width} × {activeItem.height}</p>
+                     <p className="text-[10px] text-slate-400">mm</p>
+                   </div>
+                   <div className="p-4 text-center">
+                     <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Profile</p>
+                     <p className="text-lg font-black text-blue-700 mt-1">{bomData.profiles.length}</p>
+                     <p className="text-[10px] text-slate-400">tipuri repere</p>
+                   </div>
+                   <div className="p-4 text-center">
+                     <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Sticlă</p>
+                     <p className="text-lg font-black text-cyan-700 mt-1">{bomData.glass.area} m²</p>
+                     <p className="text-[10px] text-slate-400">per unitate</p>
+                   </div>
+                   <div className="p-4 text-center">
+                     <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Feronerie</p>
+                     <p className="text-lg font-black text-orange-700 mt-1">{bomData.hardware.length}</p>
+                     <p className="text-[10px] text-slate-400">componente</p>
+                   </div>
+                   <div className="p-4 text-center bg-emerald-50/50">
+                     <p className="text-[10px] text-emerald-600 uppercase tracking-widest font-bold">Total Piese</p>
+                     <p className="text-lg font-black text-emerald-700 mt-1">{bomData.profiles.reduce((s,p) => s + p.q, 0) + bomData.hardware.reduce((s,h) => s + h.q, 0)}</p>
+                     <p className="text-[10px] text-emerald-500">per unitate</p>
+                   </div>
+                 </div>
+
+                 {/* Drawing + Key Dimensions side by side */}
+                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
+                   {/* LEFT: Technical Drawing (takes 2/3) */}
+                   <div className="lg:col-span-2 p-6 border-r border-slate-100">
+                     <TechnicalDrawing w={activeItem.width} h={activeItem.height} isFix={isFix} isDoor={isDoor} summary={bomData.summary} sashConfigs={activeItem.sash_configs} productName={activeItem.product_name} />
+                   </div>
+                   {/* RIGHT: Key dimensions panel */}
+                   <div className="p-4 bg-slate-50/80 space-y-3">
+                     <h3 className="text-xs font-black uppercase text-slate-500 tracking-widest flex items-center gap-1.5"><Ruler className="w-3.5 h-3.5"/> Cote Fabricație</h3>
+                     
+                     <div className="space-y-2">
+                       <div className="bg-white rounded-lg p-3 border border-slate-200">
+                         <p className="text-[10px] text-slate-400 uppercase">Gabarit Exterior</p>
+                         <p className="font-mono font-black text-lg text-slate-800">{activeItem.width} × {activeItem.height}</p>
+                       </div>
+                       {bomData.summary?.luminaLibera && (
+                         <div className="bg-white rounded-lg p-3 border border-slate-200">
+                           <p className="text-[10px] text-slate-400 uppercase">Lumină Ramă</p>
+                           <p className="font-mono font-black text-lg text-blue-700">{bomData.summary.luminaLibera.w} × {bomData.summary.luminaLibera.h}</p>
+                         </div>
+                       )}
+                       {bomData.summary?.cerceveaNet && (
+                         <div className="bg-white rounded-lg p-3 border border-slate-200">
+                           <p className="text-[10px] text-emerald-500 uppercase">Cercevea Netă</p>
+                           <p className="font-mono font-black text-lg text-emerald-700">{bomData.summary.cerceveaNet.w} × {bomData.summary.cerceveaNet.h}</p>
+                         </div>
+                       )}
+                       <div className="bg-cyan-50 rounded-lg p-3 border border-cyan-200">
+                         <p className="text-[10px] text-cyan-600 uppercase">Cotă Tăiere Sticlă</p>
+                         <p className="font-mono font-black text-lg text-cyan-800">{bomData.summary?.sticlaCut?.w} × {bomData.summary?.sticlaCut?.h}</p>
+                       </div>
+                       <div className="bg-slate-800 rounded-lg p-3 text-white">
+                         <p className="text-[10px] text-slate-400 uppercase">Sticlă Totală</p>
+                         <p className="font-mono font-black text-2xl">{(bomData.glass.area * activeItem.quantity).toFixed(2)} <span className="text-sm font-normal text-slate-400">m²</span></p>
+                       </div>
+                     </div>
+
+                     {/* Mini material info */}
+                     <div className="pt-2 space-y-1.5">
+                       <div className="flex justify-between text-xs"><span className="text-slate-400">Material</span><span className="font-bold text-slate-700">{activeItem.material_name}</span></div>
+                       <div className="flex justify-between text-xs"><span className="text-slate-400">Sticlă</span><span className="font-bold text-slate-700">{bomData.glass.type}</span></div>
+                       {activeItem.color_name && <div className="flex justify-between text-xs"><span className="text-slate-400">Culoare</span><span className="font-bold text-slate-700 flex items-center gap-1">{activeItem.color_hex && <span className="w-3 h-3 rounded-full inline-block border border-slate-200" style={{backgroundColor: activeItem.color_hex}}></span>}{activeItem.color_name}</span></div>}
+                       <div className="flex justify-between text-xs"><span className="text-slate-400">Tip</span><span className="font-bold text-slate-700">{isFix ? 'Fix' : (isDoor ? 'Ușă Balcon' : 'Oscilo-Batant')}</span></div>
+                     </div>
+                   </div>
                  </div>
                </div>
 
-               {/* CUSTOM TABS FOR INDUSTRIAL SETTINGS */}
+               {/* DETAILED PRODUCTION TABS */}
                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden print:border-none print:shadow-none">
                  <div className="flex border-b border-slate-100 bg-slate-50/50 overflow-x-auto print:hidden">
-                    <button onClick={() => setActiveTab('grafica')} className={`px-6 py-4 text-sm font-bold border-b-2 whitespace-nowrap flex items-center gap-2 transition-colors ${activeTab === 'grafica' ? 'border-blue-600 text-blue-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>
-                      <Ruler className="w-4 h-4"/> Grafică & Cote
-                    </button>
                     <button onClick={() => setActiveTab('taiere')} className={`px-6 py-4 text-sm font-bold border-b-2 whitespace-nowrap flex items-center gap-2 transition-colors ${activeTab === 'taiere' ? 'border-emerald-600 text-emerald-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>
-                      <Scissors className="w-4 h-4"/> Listă Debitări Profil
+                      <Scissors className="w-4 h-4"/> Debitări Profil
                     </button>
                     <button onClick={() => setActiveTab('optimizare')} className={`px-6 py-4 text-sm font-bold border-b-2 whitespace-nowrap flex items-center gap-2 transition-colors ${activeTab === 'optimizare' ? 'border-indigo-600 text-indigo-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>
                       <PackageOpen className="w-4 h-4"/> Optimizare Bare (6m)
@@ -864,21 +936,14 @@ export default function FactoryManager() {
                       <Layers className="w-4 h-4"/> Sticlă Termopan
                     </button>
                     <button onClick={() => setActiveTab('feronerie')} className={`px-6 py-4 text-sm font-bold border-b-2 whitespace-nowrap flex items-center gap-2 transition-colors ${activeTab === 'feronerie' ? 'border-orange-600 text-orange-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>
-                      <Wrench className="w-4 h-4"/> Feronerie Montaj
+                      <Wrench className="w-4 h-4"/> Feronerie ({bomData.hardware.length})
                     </button>
                     <button onClick={() => setActiveTab('etichete')} className={`px-6 py-4 text-sm font-bold border-b-2 whitespace-nowrap flex items-center gap-2 transition-colors ${activeTab === 'etichete' ? 'border-purple-600 text-purple-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>
-                      <Barcode className="w-4 h-4"/> Etichete / Coduri Bare
+                      <Barcode className="w-4 h-4"/> Etichete
                     </button>
                  </div>
 
                  <div className="p-6">
-                   {/* TAB 1: Grafica */}
-                   <div className={`animate-in fade-in duration-300 ${activeTab === 'grafica' ? 'block' : 'hidden print:block'}`}>
-                      <div className="print:pb-8">
-                        <h3 className="hidden print:flex text-lg font-bold mb-4 items-center gap-2"><Ruler className="w-5 h-5"/> Planșă Tehnică & Cote</h3>
-                        <TechnicalDrawing w={activeItem.width} h={activeItem.height} isFix={isFix} isDoor={isDoor} summary={bomData.summary} sashConfigs={activeItem.sash_configs} productName={activeItem.product_name} />
-                      </div>
-                   </div>
 
                    {/* TAB 2: Tăieri (CNC Optimization Table) */}
                    <div className={`animate-in fade-in duration-300 print:mt-12 print:break-before-page ${activeTab === 'taiere' ? 'block' : 'hidden print:block'}`}>
