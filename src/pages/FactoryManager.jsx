@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { 
   Factory, Calendar, ClipboardList, Hammer, 
   ArrowRight, Search, Loader2, PackageOpen, Filter,
-  Layers, Wrench, Ruler, Scissors, ChevronRight, Barcode, Settings
+  Layers, Wrench, Ruler, Scissors, ChevronRight, Barcode, Settings,
+  Maximize2, X
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ro } from 'date-fns/locale';
@@ -314,6 +315,8 @@ const TechnicalDrawing = ({ w, h, isFix, isDoor, summary, sashConfigs, productNa
                   <rect x={sx} y={sy} width={sw} height={sh} fill="#ffffff" stroke="#64748b" strokeWidth="1.5" />
                   {/* Sticlă */}
                   <rect x={glassX} y={glassY} width={glassW} height={glassH} fill="#bae6fd" stroke="#7dd3fc" strokeWidth="1" opacity="0.8" />
+                  {/* ═══ LITERA CANAT (A, B, C...) ═══ */}
+                  <text x={glassX + glassW/2} y={glassY + glassH/2 + 6} textAnchor="middle" fill="#1e40af" fontSize="18" fontWeight="900" fontFamily="monospace" opacity="0.35">{String.fromCharCode(65 + sash.index)}</text>
                   {/* Mâner */}
                   <rect x={hx} y={hy} width={4} height={isDoor ? 50 : 30} fill="#334155" rx="2" />
                   {/* Linii deschidere */}
@@ -323,7 +326,10 @@ const TechnicalDrawing = ({ w, h, isFix, isDoor, summary, sashConfigs, productNa
             })}
 
             {isFix && (
-              <rect x={frameThick + 5} y={frameThick + 5} width={innerW - 10} height={innerH - 10} fill="#bae6fd" stroke="#7dd3fc" strokeWidth="1" opacity="0.8" />
+              <>
+                <rect x={frameThick + 5} y={frameThick + 5} width={innerW - 10} height={innerH - 10} fill="#bae6fd" stroke="#7dd3fc" strokeWidth="1" opacity="0.8" />
+                <text x={drawW/2} y={drawH/2 + 6} textAnchor="middle" fill="#1e40af" fontSize="18" fontWeight="900" fontFamily="monospace" opacity="0.35">A</text>
+              </>
             )}
             
             {/* Diagonale sudură */}
@@ -331,6 +337,12 @@ const TechnicalDrawing = ({ w, h, isFix, isDoor, summary, sashConfigs, productNa
             <line x1={drawW} y1="0" x2={drawW - frameThick} y2={frameThick} stroke="#94a3b8" strokeWidth="1" />
             <line x1="0" y1={drawH} x2={frameThick} y2={drawH - frameThick} stroke="#94a3b8" strokeWidth="1" />
             <line x1={drawW} y1={drawH} x2={drawW - frameThick} y2={drawH - frameThick} stroke="#94a3b8" strokeWidth="1" />
+            
+            {/* ═══ UNGHIURI SUDURĂ ═══ */}
+            <text x={6} y={14} fill="#94a3b8" fontSize="7" fontFamily="monospace">45°</text>
+            <text x={drawW - 22} y={14} fill="#94a3b8" fontSize="7" fontFamily="monospace">45°</text>
+            <text x={6} y={drawH - 6} fill="#94a3b8" fontSize="7" fontFamily="monospace">45°</text>
+            <text x={drawW - 22} y={drawH - 6} fill="#94a3b8" fontSize="7" fontFamily="monospace">45°</text>
          </svg>
       </div>
       
@@ -481,6 +493,7 @@ export default function FactoryManager() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [activeItemIndex, setActiveItemIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('taiere'); // taiere | sticla | feronerie | etichete
+  const [fullscreenDrawing, setFullscreenDrawing] = useState(false);
 
   // State Setări Tehnologice (Persistente)
   const [techSettings, setTechSettings] = useState(() => {
@@ -799,6 +812,28 @@ export default function FactoryManager() {
         </div>
       </div>
 
+      {/* FULLSCREEN DRAWING MODAL */}
+      {fullscreenDrawing && activeItem && bomData && (
+        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-8 print:hidden" onClick={() => setFullscreenDrawing(false)}>
+          <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-auto p-8 relative" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setFullscreenDrawing(false)} className="absolute top-4 right-4 bg-slate-100 hover:bg-red-100 hover:text-red-600 rounded-full w-10 h-10 flex items-center justify-center transition-colors z-10">
+              <X className="w-5 h-5"/>
+            </button>
+            <h2 className="text-lg font-black text-slate-800 mb-1">Planșă Tehnică — {activeItem.product_name}</h2>
+            <p className="text-sm text-slate-400 mb-6">{activeItem.width} × {activeItem.height} mm • {activeItem.material_name} • {bomData.glass.type}</p>
+            <div className="flex justify-center">
+              <TechnicalDrawing w={activeItem.width} h={activeItem.height} isFix={isFix} isDoor={isDoor} summary={bomData.summary} sashConfigs={activeItem.sash_configs} productName={activeItem.product_name} />
+            </div>
+            <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3 text-center text-xs">
+              <div className="bg-slate-50 rounded-lg p-3"><p className="text-slate-400 uppercase">Gabarit</p><p className="font-mono font-black text-lg">{activeItem.width} × {activeItem.height}</p></div>
+              {bomData.summary?.luminaLibera && <div className="bg-blue-50 rounded-lg p-3"><p className="text-blue-400 uppercase">Lumină Ramă</p><p className="font-mono font-black text-lg text-blue-700">{bomData.summary.luminaLibera.w} × {bomData.summary.luminaLibera.h}</p></div>}
+              <div className="bg-cyan-50 rounded-lg p-3"><p className="text-cyan-500 uppercase">Cotă Sticlă</p><p className="font-mono font-black text-lg text-cyan-800">{bomData.summary?.sticlaCut?.w} × {bomData.summary?.sticlaCut?.h}</p></div>
+              <div className="bg-emerald-50 rounded-lg p-3"><p className="text-emerald-500 uppercase">Arie Sticlă</p><p className="font-mono font-black text-lg text-emerald-700">{bomData.glass.area} m²</p></div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MASTER-DETAIL GRID */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
 
@@ -877,8 +912,11 @@ export default function FactoryManager() {
 
                  {/* Drawing + Key Dimensions side by side */}
                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
-                   {/* LEFT: Technical Drawing (takes 2/3) */}
-                   <div className="lg:col-span-2 p-6 border-r border-slate-100">
+                   {/* LEFT: Technical Drawing (takes 2/3) — CLICKABLE */}
+                   <div className="lg:col-span-2 p-6 border-r border-slate-100 cursor-pointer group relative" onClick={() => setFullscreenDrawing(true)}>
+                     <div className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center gap-1">
+                       <Maximize2 className="w-3 h-3"/> Click = Mărire
+                     </div>
                      <TechnicalDrawing w={activeItem.width} h={activeItem.height} isFix={isFix} isDoor={isDoor} summary={bomData.summary} sashConfigs={activeItem.sash_configs} productName={activeItem.product_name} />
                    </div>
                    {/* RIGHT: Key dimensions panel */}
