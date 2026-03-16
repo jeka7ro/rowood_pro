@@ -32,6 +32,7 @@ const AdvancedBOMEngine = (item, techSettings = DEFAULT_TECH_SETTINGS) => {
   const w = parseFloat(item.width) || 0;
   const h = parseFloat(item.height) || 0;
   const isFix = item.product_name?.toLowerCase().includes('fix');
+  const isDoor = item.product_name?.toLowerCase().includes('balcon') || item.product_name?.toLowerCase().includes('ușă') || item.product_name?.toLowerCase().includes('usa');
   
   // Constante Industriale încărcate din setările personalizabile
   const { latimeProfilRama, latimeProfilCercevea, deducereSudura, deducereMontaj, deducereArmatura, deducereFalt } = techSettings;
@@ -86,22 +87,90 @@ const AdvancedBOMEngine = (item, techSettings = DEFAULT_TECH_SETTINGS) => {
 
   const glassArea = Math.max(0, (coteSticla.w * coteSticla.h) / 1000000);
 
-  // FERONERIE AVANSATĂ
-  const hardware = isFix ? [
-    { reper: 'Clips Prindere Bagheta', q: 12, cod: 'CL-BAG-90' },
-    { reper: 'Bucăți Calare Sticlă (Pod de sticlă)', q: 4, cod: 'CAL-01' },
-    { reper: 'Șurub Auto-Filetant 3.9x25', q: 8, cod: 'SRB-3925' }
-  ] : [
-    { reper: 'Cremon (Transmisie Principală)', q: Math.ceil(h / 1000), cod: `CRM-${h > 1500 ? 'L' : 'S'}` },
-    { reper: 'Transmisie de Colț (Corner Drive)', q: 1, cod: 'CRN-DRV' },
-    { reper: 'Foarfecă (Oscilo-Batant)', q: 1, cod: `SCIS-${w > 800 ? 'L' : 'S'}` },
-    { reper: 'Balama Superioară (Toc+Cercevea)', q: 1, cod: 'BLM-TOP-01' },
-    { reper: 'Balama Inferioară (Toc+Cercevea)', q: 1, cod: 'BLM-BTM-01' },
-    { reper: 'Blocatori (Puncte Închidere)', q: 2 + Math.floor(h/600), cod: 'BLC-01' },
-    { reper: 'Mâner Fereastră (Olive)', q: 1, cod: 'MNR-ALU-01' },
-    { reper: 'Cale susținere greutate 2mm/3mm', q: 6, cod: 'CAL-05' },
-    { reper: 'Șurub Feronerie 4x35', q: 24, cod: 'SRB-4035' }
-  ];
+  // ═══════════════════════════════════════════════════
+  // FERONERIE COMPLETĂ (Nivel Profesional RA Workshop)
+  // ═══════════════════════════════════════════════════
+  const hardware = [];
+
+  if (isFix) {
+    hardware.push(
+      { reper: 'Clips Prindere Baghetă', q: 12, cod: 'CL-BAG-90', categorie: 'Fixare', descriere: 'Clipsuri din plastic pentru fixarea baghetei de sticlă' },
+      { reper: 'Bucăți Calare Sticlă', q: 4, cod: 'CAL-01', categorie: 'Montaj', descriere: 'Cale din polietilenă pentru poziționarea sticlei în falțul ramei' },
+      { reper: 'Garnitură EPDM Sticlă Interioară', q: 1, cod: `GRN-INT-${Math.ceil((2*(coteSticla.w+coteSticla.h))/1000)}m`, categorie: 'Etanșare', descriere: `Garnitură din cauciuc EPDM, lungime: ${Math.ceil(2*(coteSticla.w+coteSticla.h))} mm`, lgBrut: 2*(coteSticla.w+coteSticla.h) },
+      { reper: 'Garnitură EPDM Sticlă Exterioară', q: 1, cod: `GRN-EXT-${Math.ceil((2*(coteSticla.w+coteSticla.h))/1000)}m`, categorie: 'Etanșare', descriere: `Garnitură exterioară din EPDM`, lgBrut: 2*(coteSticla.w+coteSticla.h) },
+      { reper: 'Capac Drenaj Exterior', q: 2, cod: 'DRN-CAP-W', categorie: 'Drenaj', descriere: 'Capace albe de protecție a orificiilor de drenaj' },
+      { reper: 'Șurub Auto-Filetant 3.9x25', q: 8, cod: 'SRB-3925', categorie: 'Șuruburi', descriere: 'Șuruburi fixare cadru fix' }
+    );
+  } else {
+    // === FERONERIE OSCILO-BATANT ===
+    const cremoane = Math.ceil(h / 800);
+    hardware.push(
+      { reper: 'Cremon Principal (Transmisie Centrală)', q: 1, cod: `CRM-${h > 1500 ? 'LONG' : 'STD'}-${h}`, categorie: 'Feronerie OB', descriere: `Transmisie principală oscilo-batant, înălțime ${h}mm` },
+      { reper: 'Prelungitor Cremon', q: Math.max(0, cremoane - 1), cod: `CRM-EXT-${Math.ceil(h/3)}`, categorie: 'Feronerie OB', descriere: 'Prelungitor cremon pentru ferestre înalte' },
+      { reper: 'Transmisie de Colț (Corner Drive)', q: 2, cod: 'CRN-DRV-01', categorie: 'Feronerie OB', descriere: 'Transmisie la 90° pentru colțurile cercevelei' },
+      { reper: 'Foarfecă Oscilo-Batant', q: 1, cod: `SCIS-${w > 800 ? 'LONG' : 'STD'}-${w}`, categorie: 'Feronerie OB', descriere: `Foarfecă pentru deschidere oscilobatantă, lățime ${w}mm` },
+      { reper: 'Limitator Deschidere', q: 1, cod: 'LIM-OB-01', categorie: 'Feronerie OB', descriere: 'Limitator unghi maxim deschidere (siguranță)' }
+    );
+    
+    // === BALAMALE ===
+    hardware.push(
+      { reper: 'Balama Superioară (Foarfecă Toc)', q: 1, cod: 'BLM-SUP-TOC', categorie: 'Balamale', descriere: 'Balama superioară montată pe toc, articulație foarfecă' },
+      { reper: 'Balama Superioară (Foarfecă Cercevea)', q: 1, cod: 'BLM-SUP-CRC', categorie: 'Balamale', descriere: 'Balama superioară montată pe cercevea' },
+      { reper: 'Balama Inferioară Toc', q: 1, cod: 'BLM-INF-TOC', categorie: 'Balamale', descriere: 'Balama inferioară montată pe toc (pivot principal)' },
+      { reper: 'Balama Inferioară Cercevea', q: 1, cod: 'BLM-INF-CRC', categorie: 'Balamale', descriere: 'Balama inferioară montată pe cercevea' },
+      { reper: 'Capac Balama Inferioară', q: 2, cod: 'CAP-BLM-INF', categorie: 'Balamale', descriere: 'Capace decorative din plastic pentru balamaua inferioară' }
+    );
+
+    // === PUNCTE ÎNCHIDERE & BLOCATOARE ===
+    const nrBlocatori = 2 + Math.floor(h / 500); // mai mulți pe ferestre înalte
+    hardware.push(
+      { reper: 'Punct de Închidere (Zavor/Ciupercă)', q: nrBlocatori, cod: 'BLC-CPC-01', categorie: 'Închidere', descriere: `Puncte de închidere tip ciupercă anti-efracție (${nrBlocatori} puncte)` },
+      { reper: 'Plăcuță Închidere (Contrapiesa)', q: nrBlocatori, cod: 'BLC-CPT-01', categorie: 'Închidere', descriere: 'Contrapiesele montate pe toc' },
+      { reper: 'Închizător Micro-Ventilație', q: 1, cod: 'MV-01', categorie: 'Închidere', descriere: 'Permite aerisire în poziția de micro-ventilație' }
+    );
+
+    // === MÂNER ===
+    hardware.push(
+      { reper: 'Mâner Fereastră (Olive) cu Cheie', q: 1, cod: 'MNR-ALU-SEC', categorie: 'Mâner', descriere: 'Mâner din aluminiu cu blocare cu cheie, culoare conform comandă' },
+      { reper: 'Plăcuță Mâner', q: 1, cod: 'PLQ-MNR-01', categorie: 'Mâner', descriere: 'Plăcuță suport mâner cu rozetă' },
+      { reper: 'Șurub Mâner M5x45', q: 2, cod: 'SRB-MNR-M545', categorie: 'Mâner', descriere: 'Șuruburi fixare mâner pe cercevea' }
+    );
+
+    // === ETANȘARE & GARNITURI ===
+    const perimCercevea = 2 * (lgCerceveaOriz + lgCerceveaVert);
+    const perimRama = 2 * (w + h);
+    hardware.push(
+      { reper: 'Garnitură Bătaie (Cercevea-Toc)', q: 1, cod: `GRN-BAT-${Math.ceil(perimCercevea/1000)}m`, categorie: 'Etanșare', descriere: `Garnitură din EPDM pe cercevea (perim: ${perimCercevea}mm)`, lgBrut: perimCercevea },
+      { reper: 'Garnitură Centrală (Sticlă-Cercevea)', q: 1, cod: `GRN-CTR-${Math.ceil(perimCercevea/1000)}m`, categorie: 'Etanșare', descriere: `Garnitură mediană sticlă, lungime: ${perimCercevea}mm`, lgBrut: perimCercevea },
+      { reper: 'Garnitură Exterioară Toc', q: 1, cod: `GRN-EXT-TOC-${Math.ceil(perimRama/1000)}m`, categorie: 'Etanșare', descriere: `Garnitură exterioară pe rama tocului, lungime: ${perimRama}mm`, lgBrut: perimRama }
+    );
+
+    // === DRENAJ & VENTILAȚIE ===
+    hardware.push(
+      { reper: 'Capac Drenaj Exterior', q: 2, cod: 'DRN-CAP-W', categorie: 'Drenaj', descriere: 'Capace de protecție a orificiilor de drenaj' },
+      { reper: 'Capac Cameră Egalizare', q: 2, cod: 'DRN-EGL-01', categorie: 'Drenaj', descriere: 'Capace de acoperire cameră de egalizare presiune' },
+      { reper: 'Grile Ventilație (opțional)', q: isDoor ? 0 : 1, cod: 'VENT-GRL-01', categorie: 'Drenaj', descriere: 'Grilă ventilație integrată (dacă este cerută)' }
+    );
+
+    // === ACCESORII MONTAJ ===
+    hardware.push(
+      { reper: 'Cale Susținere Greutate 2mm', q: 4, cod: 'CAL-2MM', categorie: 'Montaj', descriere: 'Cale din polietilenă pentru susținere greutate sticlă' },
+      { reper: 'Cale Susținere Greutate 3mm', q: 4, cod: 'CAL-3MM', categorie: 'Montaj', descriere: 'Cale din polietilenă 3mm' },
+      { reper: 'Cale Susținere Greutate 5mm', q: 2, cod: 'CAL-5MM', categorie: 'Montaj', descriere: 'Cale din polietilenă 5mm (pentru sticlă grea)' },
+      { reper: 'Clips Prindere Baghetă', q: Math.ceil((2*(coteSticla.w+coteSticla.h))/150), cod: 'CL-BAG-90', categorie: 'Montaj', descriere: 'Clipsuri pentru fixarea baghetelor de sticlă' },
+      { reper: 'Buton Ridicare Cercevea', q: isDoor ? 1 : 0, cod: 'BTN-RDC-01', categorie: 'Montaj', descriere: 'Buton ridicare pentru uși de balcon (compensare greutate)' }
+    );
+
+    // === FIXARE & ȘURUBURI ===
+    hardware.push(
+      { reper: 'Șurub Feronerie 4x35', q: 20 + nrBlocatori * 2, cod: 'SRB-4035', categorie: 'Șuruburi', descriere: 'Șuruburi fixare feronerie pe profil PVC' },
+      { reper: 'Șurub Balama 5x40', q: 8, cod: 'SRB-5040', categorie: 'Șuruburi', descriere: 'Șuruburi de fixare balamale (rezistență ridicată)' },
+      { reper: 'Șurub Auto-Filetant 3.9x25', q: 6, cod: 'SRB-3925', categorie: 'Șuruburi', descriere: 'Șuruburi suplimentare diverse' }
+    );
+  }
+
+  // Filtru: elimină componentele cu cantitate 0
+  const filteredHardware = hardware.filter(h => h.q > 0);
 
   // SUMAR DETALIAT DE COTE
   const summary = {
@@ -115,7 +184,7 @@ const AdvancedBOMEngine = (item, techSettings = DEFAULT_TECH_SETTINGS) => {
   return { 
     profiles, 
     glass: { w: Math.max(0, coteSticla.w), h: Math.max(0, coteSticla.h), area: glassArea.toFixed(2), type: item.glazing_name || 'Sticlă Necunoscută' }, 
-    hardware,
+    hardware: filteredHardware,
     summary
   };
 };
@@ -888,25 +957,73 @@ export default function FactoryManager() {
                        </div>
                      </div>
 
-                   {/* TAB 4: Feronerie */}
+                   {/* TAB 4: Feronerie — Grupat pe Categorii */}
                    <div className={`animate-in fade-in duration-300 print:mt-12 print:break-inside-avoid ${activeTab === 'feronerie' ? 'block' : 'hidden print:block'}`}>
                        <h3 className="hidden print:flex text-lg font-bold mb-4 items-center gap-2"><Wrench className="w-5 h-5"/> Listă Feronerie și Consumabile</h3>
                        
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-                          {bomData.hardware.map((hw, i) => (
-                            <div key={i} className="flex items-center justify-between py-3 border-b border-dashed border-slate-200">
-                               <div>
-                                 <p className="font-semibold text-slate-800">{hw.reper}</p>
-                                 <p className="font-mono text-xs text-orange-600">{hw.cod}</p>
+                       {/* Summary stats */}
+                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                         <div className="bg-slate-100 rounded-lg p-3 text-center">
+                           <p className="text-xs text-slate-500">Componente unice</p>
+                           <p className="text-2xl font-black text-slate-800">{bomData.hardware.length}</p>
+                         </div>
+                         <div className="bg-orange-50 rounded-lg p-3 text-center">
+                           <p className="text-xs text-orange-600">Total piese / unitate</p>
+                           <p className="text-2xl font-black text-orange-700">{bomData.hardware.reduce((s, h) => s + h.q, 0)}</p>
+                         </div>
+                         <div className="bg-emerald-50 rounded-lg p-3 text-center">
+                           <p className="text-xs text-emerald-600">Total piese x{activeItem.quantity}</p>
+                           <p className="text-2xl font-black text-emerald-700">{bomData.hardware.reduce((s, h) => s + h.q, 0) * activeItem.quantity}</p>
+                         </div>
+                         <div className="bg-blue-50 rounded-lg p-3 text-center">
+                           <p className="text-xs text-blue-600">Categorii</p>
+                           <p className="text-2xl font-black text-blue-700">{[...new Set(bomData.hardware.map(h => h.categorie))].length}</p>
+                         </div>
+                       </div>
+
+                       {/* Grouped by category */}
+                       <div className="space-y-6">
+                         {Object.entries(
+                           bomData.hardware.reduce((acc, hw) => {
+                             const cat = hw.categorie || 'General';
+                             if (!acc[cat]) acc[cat] = [];
+                             acc[cat].push(hw);
+                             return acc;
+                           }, {})
+                         ).map(([category, items]) => {
+                           const catColors = {
+                             'Feronerie OB': 'bg-blue-600', 'Balamale': 'bg-indigo-600', 'Închidere': 'bg-red-600',
+                             'Mâner': 'bg-amber-600', 'Etanșare': 'bg-teal-600', 'Drenaj': 'bg-cyan-600',
+                             'Montaj': 'bg-purple-600', 'Șuruburi': 'bg-slate-600', 'Fixare': 'bg-slate-500'
+                           };
+                           const color = catColors[category] || 'bg-slate-500';
+                           return (
+                             <div key={category} className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                               <div className={`${color} px-4 py-2.5 flex justify-between items-center`}>
+                                 <span className="font-bold text-white text-sm tracking-wide uppercase">{category}</span>
+                                 <span className="text-white/80 text-xs">{items.length} repere</span>
                                </div>
-                               <div className="text-right">
-                                 <p className="text-sm text-slate-500">{hw.q} buc/unitate</p>
-                                 <p className="font-black text-slate-900 text-lg">{hw.q * activeItem.quantity} <span className="text-sm font-semibold text-slate-500">Total</span></p>
+                               <div className="divide-y divide-slate-100">
+                                 {items.map((hw, i) => (
+                                   <div key={i} className="px-4 py-3 hover:bg-slate-50 transition-colors flex items-start gap-4">
+                                     <div className="flex-1 min-w-0">
+                                       <p className="font-semibold text-slate-800 text-sm">{hw.reper}</p>
+                                       {hw.descriere && <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{hw.descriere}</p>}
+                                     </div>
+                                     <div className="text-right shrink-0">
+                                       <span className="font-mono text-[10px] text-orange-500 block">{hw.cod}</span>
+                                       <div className="flex items-center gap-2 mt-1">
+                                         <span className="text-xs text-slate-400">{hw.q}/u</span>
+                                         <span className="font-black text-slate-900">{hw.q * activeItem.quantity}</span>
+                                       </div>
+                                     </div>
+                                   </div>
+                                 ))}
                                </div>
                              </div>
-                           ))}
-                        </div>
-
+                           );
+                         })}
+                       </div>
                      </div>
 
                    {/* TAB 5: Etichete (Barcode/QR) */}
