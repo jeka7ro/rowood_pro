@@ -276,15 +276,17 @@ function LayoutContent({ children, currentPageName }) {
                     variant="destructive"
                     size="sm"
                     onClick={async () => {
-                      if (user?.id) {
-                        await base44.entities.UserLog.create({
-                          user_id: user.id,
-                          action: 'logout',
-                          details: 'Logout din panoul Admin'
-                        });
-                        tracker.trackLogout(user.email);
-                      }
-                      await base44.auth.logout(createPageUrl('Home'));
+                      try {
+                        if (user?.id) {
+                          await base44.entities.UserLog.create({
+                            user_id: user.id,
+                            action: 'logout',
+                            details: 'Logout din panoul Admin'
+                          }).catch(() => {}); // nu bloca dacă nu merge
+                          tracker.trackLogout(user.email);
+                        }
+                      } catch {}
+                      logout(); // șterge sesiunea din localStorage + redirect la /
                     }}
                     className="w-full h-9 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transition-all duration-200"
                   >
