@@ -308,8 +308,7 @@ export default function CheckoutPage() {
       try {
         // Citim sesiunea locală
         const localSession = JSON.parse(localStorage.getItem('local_auth_session') || 'null');
-        const cartKey = localSession?.email ? `cart_${localSession.email}` : 'guestCart';
-        const items = JSON.parse(localStorage.getItem(cartKey) || '[]');
+        const items = JSON.parse(localStorage.getItem('rowood_cart') || '[]');
 
         if (localSession) {
           setFormData(prev => ({
@@ -526,12 +525,7 @@ export default function CheckoutPage() {
       const newOrder = await base44.entities.Order.create(orderData);
 
       // 3. Ștergere Coș
-      const user = await base44.auth.me().catch(() => null);
-      if (user?.email) {
-        await Promise.all(itemsToProcess.map(item => base44.entities.CartItem.delete(item.id)));
-      } else {
-        localStorage.removeItem('guestCart');
-      }
+      localStorage.removeItem('rowood_cart');
 
       // 4. NU TRIMITE EMAILURI ÎNCĂ - doar la plată confirmată!
       // Emailurile se vor trimite din Payment/PaymentSuccess după confirmare

@@ -1,12 +1,43 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
-// Cheie de cart per utilizator — fiecare user are coșul lui separat
-const getCartKey = () => {
+// Cheie unificată de coș — ACEEAȘI indiferent dacă ești logat sau nu
+const CART_KEY = 'rowood_cart';
+
+// Migrează coșurile vechi (guestCart, cart_email) în cheia unificată
+const migrateOldCartKeys = () => {
   try {
-    const session = JSON.parse(localStorage.getItem('local_auth_session') || 'null');
-    if (session?.email) return `cart_${session.email}`;
-  } catch {}
-  return 'guestCart';
+    const unified = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
+    let migrated = false;
+    
+    // Migrează din guestCart
+    const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+    if (guestCart.length > 0) {
+      unified.push(...guestCart);
+      localStorage.removeItem('guestCart');
+      migrated = true;
+    }
+    
+    // Migrează din cart_email keys
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('cart_') && key !== CART_KEY) {
+        try {
+          const oldCart = JSON.parse(localStorage.getItem(key) || '[]');
+          if (oldCart.length > 0) {
+            unified.push(...oldCart);
+            migrated = true;
+          }
+          localStorage.removeItem(key);
+        } catch {}
+      }
+    }
+    
+    if (migrated && unified.length > 0) {
+      localStorage.setItem(CART_KEY, JSON.stringify(unified));
+    }
+  } catch (e) {
+    console.warn('Cart migration error:', e);
+  }
 };
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -70,8 +101,9 @@ export default function ShoppingCartPage() {
   const loadCartData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const cartKey = getCartKey();
-      const storedCart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+      // Migrează coșuri vechi la prima încărcare
+      migrateOldCartKeys();
+      const storedCart = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
       setCartItems(storedCart);
     } catch (error) {
       console.error('Error loading cart data:', error);
@@ -87,20 +119,18 @@ export default function ShoppingCartPage() {
 
   const handleUpdateQuantity = async (itemId, newQuantity) => {
     if (newQuantity < 1) return;
-    const cartKey = getCartKey();
-    const storedCart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+    const storedCart = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
     const updatedCart = storedCart.map(item =>
       item.id === itemId ? { ...item, quantity: newQuantity } : item
     );
-    localStorage.setItem(cartKey, JSON.stringify(updatedCart));
+    localStorage.setItem(CART_KEY, JSON.stringify(updatedCart));
     setCartItems(updatedCart);
   };
 
   const deleteItemConfirmed = async (itemId) => {
-    const cartKey = getCartKey();
-    const storedCart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+    const storedCart = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
     const updatedCart = storedCart.filter(item => item.id !== itemId);
-    localStorage.setItem(cartKey, JSON.stringify(updatedCart));
+    localStorage.setItem(CART_KEY, JSON.stringify(updatedCart));
     setCartItems(updatedCart);
   };
 
@@ -351,25 +381,14 @@ export default function ShoppingCartPage() {
                     </div>
                   </div>
 
-                  {(user || isAuthenticated) ? (
-                    <Button
-                      onClick={handleProceedToCheckout} // Changed to onClick to align with outline
-                      size="lg"
-                      className="w-full bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-lg py-6"
-                    >
-                      {t('cart.proceedToCheckout')}
-                      <ArrowRight className="w-5 h-5 ml-2" />
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={handleLogin}
-                      size="lg"
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-lg py-6"
-                    >
-                      <LogIn className="w-5 h-5 mr-2" />
-                      {t('cart.loginToOrder')}
-                    </Button>
-                  )}
+                  <Button
+                    onClick={handleProceedToCheckout}
+                    size="lg"
+                    className="w-full bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-lg py-6"
+                  >
+                    {t('cart.proceedToCheckout')}
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
 
                   <Link to={createPageUrl("Configurator")}>
                     <Button

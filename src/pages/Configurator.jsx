@@ -813,16 +813,15 @@ export default function ConfiguratorPage() {
         }
       };
 
-      // Citim sesiunea locală (fără Base44)
-      const localSession = JSON.parse(localStorage.getItem('local_auth_session') || 'null');
-      // Cheie specifică per utilizator pentru a evita amestecul de coșuri
-      const cartKey = localSession?.email ? `cart_${localSession.email}` : 'guestCart';
+      // Cheie unificată de coș — aceeași indiferent de logare
+      const cartKey = 'rowood_cart';
 
       const storedCart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+      const session = JSON.parse(localStorage.getItem('local_auth_session') || 'null');
       const newItem = {
         ...cartItemData,
         id: `cart_${Date.now()}`,
-        created_by: localSession?.email || 'guest',
+        created_by: session?.email || 'guest',
         created_date: new Date().toISOString()
       };
       storedCart.push(newItem);
