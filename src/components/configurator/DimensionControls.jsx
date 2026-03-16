@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { Ruler, MoveHorizontal, MoveVertical, Settings } from 'lucide-react';
+import { Ruler, MoveHorizontal, MoveVertical, Settings, Hand } from 'lucide-react';
 import { PresetDimension } from '@/entities/PresetDimension';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';

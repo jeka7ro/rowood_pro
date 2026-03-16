@@ -11,7 +11,7 @@ import {
   Home, Settings, Package, Palette, Layers, ShoppingCart, Users,
   BarChart3, Menu, X, Wrench, FileText, Scaling, Sprout, Users2,
   Briefcase, CalendarCheck, Building2, Target, LogIn, LogOut, ExternalLink, Percent, CreditCard,
-  Users as UsersIcon, History as HistoryIcon, ScrollText, TrendingUp,
+  Users as UsersIcon, History as HistoryIcon, ScrollText, TrendingUp, Factory,
 } from "lucide-react";
 import {
   Sheet,
@@ -149,6 +149,10 @@ function LayoutContent({ children, currentPageName }) {
     const adminNavigation = [
       { title: "Dashboard", url: createPageUrl("AdminDashboard"), icon: BarChart3 },
       { title: "Analytics & Tracking", url: createPageUrl("Analytics"), icon: TrendingUp },
+      { title: "Producție", url: "", icon: Factory, isSection: true },
+      { title: "Manager Fabrică", url: createPageUrl("FactoryManager"), icon: Factory },
+      { title: "Comenzi", url: createPageUrl("OrderManager"), icon: ShoppingCart },
+      { title: "Feronerie & Culori", url: createPageUrl("HardwareManager"), icon: Palette },
       { title: "CRM", url: "", icon: Users2, isSection: true },
       { title: t('leadManager.title'), url: createPageUrl("LeadManager"), icon: Target },
       { title: t('dealManager.title'), url: createPageUrl("DealManager"), icon: Briefcase },
@@ -174,7 +178,6 @@ function LayoutContent({ children, currentPageName }) {
       { title: "Date Companie", url: createPageUrl("CompanySettingsManager"), icon: Building2 },
       { title: "Template-uri Email", url: createPageUrl("EmailTemplateManager"), icon: FileText },
       { title: "Companii Montaj", url: createPageUrl("InstallationCompanyManager"), icon: Wrench },
-      { title: "Comenzi", url: createPageUrl("OrderManager"), icon: ShoppingCart }
     ];
 
     return (
@@ -231,13 +234,7 @@ function LayoutContent({ children, currentPageName }) {
               <Sidebar className="border-r-0 bg-white/80 dark:bg-slate-900/95 backdrop-blur-xl">
                 <SidebarHeader className="border-b border-gray-100 dark:border-slate-800 p-5">
                   <Link to={createPageUrl("AdminDashboard")} className="flex items-center gap-3 group">
-                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/30 group-hover:shadow-xl group-hover:shadow-green-500/40 transition-all duration-200">
-                      <Package className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <span className="font-bold text-xl text-gray-900 dark:text-gray-100 group-hover:text-green-600 transition-colors">RoWood</span>
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider">PRO Admin</p>
-                    </div>
+                    <img src="/logo-rowood.png" alt="RoWood" className="h-9 w-auto" />
                   </Link>
                 </SidebarHeader>
                 <SidebarContent className="p-3">
@@ -296,25 +293,31 @@ function LayoutContent({ children, currentPageName }) {
                   </Button>
                 </SidebarFooter>
               </Sidebar>
-              <main className="flex-1 bg-transparent">
-                <header className="bg-white/80 dark:bg-slate-900/95 backdrop-blur-xl border-b border-gray-100 dark:border-slate-800 px-5 py-3 md:hidden sticky top-0 z-40">
-                  <div className="flex items-center gap-3">
+              <main className="flex flex-1 flex-col min-w-0 bg-slate-50 dark:bg-slate-950 min-h-screen max-w-full">
+                <header className="bg-white/80 dark:bg-slate-900/95 backdrop-blur-xl border-b border-gray-100 dark:border-slate-800 px-5 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
+                  <div className="flex items-center gap-4">
                     <SidebarTrigger className="hover:bg-gray-100 dark:hover:bg-slate-800 p-2 rounded-xl transition-colors" />
-                    <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">RoWood PRO</h1>
+                    <div className="hidden md:block border-l pl-4 border-gray-200 dark:border-slate-700">
+                      <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Panou Control</h1>
+                    </div>
+                    <div className="md:hidden">
+                      <img src="/logo-rowood.png" alt="RoWood" className="h-7 w-auto" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                     <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 hidden sm:block bg-gray-100 dark:bg-slate-800 px-3 py-1.5 rounded-full">Securizat (Admin)</span>
                   </div>
                 </header>
-                <div className="p-5 admin-content">
-                  <Breadcrumbs currentPageName={currentPageName} />
-                  <div className="responsive-scroll">
+
+                <div className="p-4 md:p-6 flex-1 overflow-x-hidden w-full">
+                  <div className="mb-4">
+                    <Breadcrumbs currentPageName={currentPageName} />
+                  </div>
+                  <div className="responsive-scroll w-full max-w-full overflow-x-auto pb-8">
                     <ErrorBoundary>
                       {children}
                     </ErrorBoundary>
                   </div>
-                </div>
-                <div className="fixed bottom-4 right-4 md:hidden z-50">
-                  <SidebarTrigger className="rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 text-white p-4 shadow-2xl shadow-green-500/40 hover:shadow-green-500/60 hover:scale-110 transition-all duration-200">
-                    <Menu className="w-5 h-5" />
-                  </SidebarTrigger>
                 </div>
               </main>
             </div>
@@ -461,10 +464,7 @@ function LayoutContent({ children, currentPageName }) {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <Link to={createPageUrl("Home")} className="flex items-center gap-3 group">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/30 group-hover:shadow-xl group-hover:shadow-green-500/40 transition-all duration-200">
-                  <Package className="h-5 w-5 text-white" />
-                </div>
-                <span className="font-bold text-2xl text-gray-900 dark:text-gray-100 group-hover:text-green-600 transition-colors">RoWood</span>
+                <img src="/logo-rowood.png" alt="RoWood" className="h-10 w-auto" />
               </Link>
 
               <nav className="hidden md:flex space-x-3">

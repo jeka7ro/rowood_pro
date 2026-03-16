@@ -18,6 +18,20 @@ import {
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useTranslation } from '../components/translations/TranslationProvider';
+import { 
+  ResponsiveContainer, 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip as RechartsTooltip,
+  BarChart,
+  Bar,
+  Cell
+} from 'recharts';
+import { format, subDays, parseISO } from 'date-fns';
+import { ro } from 'date-fns/locale';
 
 export default function CRMDashboard() {
   const { t } = useTranslation();
@@ -26,13 +40,15 @@ export default function CRMDashboard() {
     newLeads: 0,
     totalDeals: 0,
     dealsPipeline: 0,
-    activitiestoday: 0,
+    activitiesToday: 0,
     contactsTotal: 0,
     conversionRate: 0,
     avgDealValue: 0
   });
   const [recentActivities, setRecentActivities] = useState([]);
   const [upcomingTasks, setUpcomingTasks] = useState([]);
+  const [revenueChartData, setRevenueChartData] = useState([]);
+  const [funnelData, setFunnelData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -97,6 +113,46 @@ export default function CRMDashboard() {
         .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
         .slice(0, 5);
       setUpcomingTasks(upcoming);
+
+      // --- Grafic Revenue 30 zile ---
+      const salesByDay = allDeals
+        .filter(deal => deal.stage === 'closed_won' && deal.created_date)
+        .reduce((acc, deal) => {
+            const date = format(parseISO(deal.created_date), 'yyyy-MM-dd');
+            acc[date] = (acc[date] || 0) + deal.value;
+            return acc;
+        }, {});
+      
+      const last30DaysData = [];
+      for (let i = 29; i >= 0; i--) {
+          const date = subDays(new Date(), i);
+          const formattedDate = format(date, 'yyyy-MM-dd');
+          const shortDate = format(date, 'dd MMM', { locale: ro });
+          last30DaysData.push({
+              name: shortDate,
+              Venit: salesByDay[formattedDate] || 0,
+          });
+      }
+      setRevenueChartData(last30DaysData);
+
+      // --- Grafic Funnel CRM ---
+      const stagesCount = { new: 0, contacted: 0, qualified: 0, proposal: 0, negotiation: 0, won: 0 };
+      allLeads.forEach(lead => {
+        if (stagesCount[lead.status] !== undefined) {
+          stagesCount[lead.status]++;
+        }
+      });
+      
+      // Calculăm pâlnia cumulativă (câți au ajuns "cel puțin" în acest stadiu)
+      const funnel = [
+        { name: 'Lead Nou', value: stagesCount.new + stagesCount.contacted + stagesCount.qualified + stagesCount.proposal + stagesCount.negotiation + stagesCount.won },
+        { name: 'Contactat', value: stagesCount.contacted + stagesCount.qualified + stagesCount.proposal + stagesCount.negotiation + stagesCount.won },
+        { name: 'Calificat', value: stagesCount.qualified + stagesCount.proposal + stagesCount.negotiation + stagesCount.won },
+        { name: 'Propunere', value: stagesCount.proposal + stagesCount.negotiation + stagesCount.won },
+        { name: 'Negociere', value: stagesCount.negotiation + stagesCount.won },
+        { name: 'Câștigat', value: stagesCount.won }
+      ];
+      setFunnelData(funnel);
 
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
@@ -195,6 +251,79 @@ export default function CRMDashboard() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Analytics Charts */}
+      <div className="grid lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        {/* Revenue Chart */}
+        <Card className="shadow-xl border-none">
+          <CardHeader className="border-b border-slate-100 bg-gradient-to-r from-emerald-50 to-green-50">
+            <CardTitle className="flex items-center gap-3 text-slate-800">
+              <TrendingUp className="w-6 h-6 text-emerald-600" />
+              Venituri (Ultimele 30 zile)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={revenueChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={(value) => `€${value}`} />
+                  <RechartsTooltip 
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                    formatter={(value) => [`€${value.toLocaleString()}`, 'Venit']}
+                  />
+                  <Area type="monotone" dataKey="Venit" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Funnel Chart */}
+        <Card className="shadow-xl border-none">
+          <CardHeader className="border-b border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <CardTitle className="flex items-center gap-3 text-slate-800">
+              <Target className="w-6 h-6 text-blue-600" />
+              Sales Funnel (Conversie Lead-uri)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={funnelData} layout="vertical" margin={{ top: 10, right: 30, left: 20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                  <XAxis type="number" hide />
+                  <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#475569', fontWeight: 500 }} width={80} />
+                  <RechartsTooltip 
+                    cursor={{fill: '#f1f5f9'}}
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                    formatter={(value) => [value, 'Lead-uri']}
+                  />
+                  <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>
+                    {funnelData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={
+                        index === 0 ? '#3b82f6' : 
+                        index === 1 ? '#60a5fa' : 
+                        index === 2 ? '#818cf8' : 
+                        index === 3 ? '#a78bfa' : 
+                        index === 4 ? '#c084fc' : 
+                        '#e879f9'
+                      } />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Quick Actions - Modern Design */}

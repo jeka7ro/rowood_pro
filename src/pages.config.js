@@ -39,6 +39,8 @@ import ProfileManager from './pages/ProfileManager';
 import MechanismManager from './pages/MechanismManager';
 import PriceManagement from './pages/PriceManagement';
 import Login from './pages/Login';
+import FactoryManager from './pages/FactoryManager';
+import HardwareManager from './pages/HardwareManager';
 import __Layout from './Layout.jsx';
 
 
@@ -84,6 +86,8 @@ export const PAGES = {
     "MechanismManager": MechanismManager,
     "PriceManagement": PriceManagement,
     "Login": Login,
+    "FactoryManager": FactoryManager,
+    "HardwareManager": HardwareManager,
 }
 
 export const pagesConfig = {

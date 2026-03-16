@@ -10,7 +10,7 @@ import {
   Home, Settings, Package, Palette, Layers, ShoppingCart, Users,
   BarChart3, Menu, X, Wrench, FileText, Scaling, Sprout, Users2,
   Briefcase, CalendarCheck, Building2, Target, LogIn, LogOut, ExternalLink, Percent, CreditCard,
-  Users as UsersIcon, History as HistoryIcon,
+  Users as UsersIcon, History as HistoryIcon, Factory,
 } from "lucide-react";
 import {
   Sheet,
@@ -111,6 +111,10 @@ function LayoutContent({ children, currentPageName }) {
   if (isAdminPage) {
     const adminNavigation = [
       { title: "Dashboard", url: createPageUrl("AdminDashboard"), icon: BarChart3 },
+      { title: "Producție", url: "", icon: Factory, isSection: true },
+      { title: "Manager Fabrică", url: createPageUrl("FactoryManager") || "/admin/factory-manager", icon: Factory },
+      { title: "Comenzi", url: createPageUrl("OrderManager"), icon: ShoppingCart },
+      { title: "Feronerie & Culori", url: createPageUrl("HardwareManager") || "/admin/hardware-manager", icon: Palette },
       { title: "CRM", url: "", icon: Users2, isSection: true },
       { title: t('leadManager.title'), url: createPageUrl("LeadManager"), icon: Target },
       { title: t('dealManager.title'), url: createPageUrl("DealManager"), icon: Briefcase },
@@ -133,7 +137,6 @@ function LayoutContent({ children, currentPageName }) {
       { title: "Date Companie", url: createPageUrl("CompanySettingsManager"), icon: Building2 },
       { title: "Template-uri Email", url: createPageUrl("EmailTemplateManager"), icon: FileText },
       { title: "Companii Montaj", url: createPageUrl("InstallationCompanyManager"), icon: Wrench },
-      { title: "Comenzi", url: createPageUrl("OrderManager"), icon: ShoppingCart }
     ];
 
     return (
@@ -178,8 +181,7 @@ function LayoutContent({ children, currentPageName }) {
               <Sidebar className="border-r border-border">
                 <SidebarHeader className="border-b border-border p-6">
                   <Link to={createPageUrl("AdminDashboard")} className="flex items-center gap-3">
-                    <Package className="h-6 w-6 text-primary" />
-                    <span className="font-bold text-xl text-primary">RoWood PRO</span>
+                    <img src="/logo-rowood.png" alt="RoWood" className="h-8 w-auto" />
                   </Link>
                 </SidebarHeader>
                 <SidebarContent className="p-4">
@@ -227,25 +229,33 @@ function LayoutContent({ children, currentPageName }) {
                   </Button>
                 </SidebarFooter>
               </Sidebar>
-              <main className="flex-1 bg-background">
-                <header className="bg-background/80 backdrop-blur-sm border-b border-border px-6 py-4 md:hidden">
+              <main className="flex flex-1 flex-col min-w-0 bg-slate-50 min-h-screen max-w-full">
+                {/* Header Global Admin - desktop & mobile */}
+                <header className="bg-white/95 backdrop-blur-md border-b border-border px-6 py-4 flex items-center justify-between sticky top-0 z-30 shadow-sm">
                   <div className="flex items-center gap-4">
-                    <SidebarTrigger className="hover:bg-secondary p-2 rounded-lg transition-colors" />
-                    <h1 className="text-xl font-bold text-primary">RoWood PRO</h1>
+                    <SidebarTrigger className="hover:bg-slate-100 p-2 rounded-lg transition-colors text-slate-700" />
+                    <div className="hidden md:block border-l pl-4 border-slate-200">
+                      <h1 className="text-xl font-bold text-slate-800 tracking-tight">Panou Control</h1>
+                    </div>
+                    <div className="md:hidden">
+                      <img src="/logo-rowood.png" alt="RoWood" className="h-7 w-auto" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                     <span className="text-sm font-medium text-slate-500 hidden sm:block bg-slate-100 px-3 py-1 rounded-full">Securizat (Admin)</span>
                   </div>
                 </header>
-                <div className="p-6 admin-content">
-                  <Breadcrumbs currentPageName={currentPageName} />
-                  <div className="responsive-scroll">
+
+                {/* Content Area */}
+                <div className="p-4 md:p-6 flex-1 overflow-x-hidden w-full">
+                  <div className="mb-4">
+                    <Breadcrumbs currentPageName={currentPageName} />
+                  </div>
+                  <div className="responsive-scroll w-full max-w-full overflow-x-auto pb-8">
                     <ErrorBoundary>
                       {children}
                     </ErrorBoundary>
                   </div>
-                </div>
-                <div className="fixed bottom-4 right-4 md:hidden">
-                  <SidebarTrigger className="rounded-full bg-green-600 text-white p-4 shadow-lg hover:bg-green-700 transition-colors">
-                    <Menu className="w-6 h-6" />
-                  </SidebarTrigger>
                 </div>
               </main>
             </div>
@@ -259,6 +269,7 @@ function LayoutContent({ children, currentPageName }) {
     { title: t('home'), url: createPageUrl("Home"), icon: Home },
     { title: t('products'), url: createPageUrl("Products"), icon: Package },
     { title: t('configurator'), url: createPageUrl("Configurator"), icon: Settings },
+    ...(globalUser ? [{ title: 'Manager Fabrică', url: createPageUrl("FactoryManager"), icon: Factory }] : []),
     { title: t('cart'), url: createPageUrl("ShoppingCart"), icon: ShoppingCart, isIconOnly: true },
     { title: t('myOrders'), url: createPageUrl("MyOrders"), icon: FileText }
   ];
@@ -353,8 +364,7 @@ function LayoutContent({ children, currentPageName }) {
           <div className="w-full px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-20">
               <Link to={createPageUrl("Home")} className="flex items-center gap-3">
-                <Package className="h-8 w-8 text-green-600" />
-                <span className="font-bold text-2xl text-foreground">RoWood</span>
+                <img src="/logo-rowood.png" alt="RoWood" className="h-10 w-auto" />
               </Link>
               <nav className="hidden md:flex space-x-1">
                 {customerNavigation.map((item) => (

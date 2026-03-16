@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, Package, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, Package, RefreshCw, ChevronDown, ChevronUp, Trash2, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { ro } from 'date-fns/locale';
@@ -21,27 +21,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Link } from 'react-router-dom'; // Added Link for navigation
+import { Link } from 'react-router-dom';
 
-// Utility function for creating URLs (placeholder, adjust based on actual routing)
-// Assuming a routing structure where 'ConfigurationView' maps to '/admin/configuration-view'
 const createPageUrl = (pathWithQueryParams) => {
     const [basePath, queryString] = pathWithQueryParams.split('?');
-    let url = '';
-    switch (basePath) {
-        case 'ConfigurationView':
-            url = '/admin/configuration-view'; // Adjust this path according to your actual routing
-            break;
-        case 'OrderPDF': // New case for Order PDF download
-            url = '/admin/order-pdf'; // Assuming a backend route handles PDF generation for an order ID
-            break;
-        case 'OrderDetails': // New case for order details view in admin
-            url = '/admin/orders'; // Adjust this path to your admin order details page
-            break;
-        // Add other cases if needed for other pages
-        default:
-            url = `/${basePath.toLowerCase()}`;
-    }
+    const url = `/${basePath}`;
     return queryString ? `${url}?${queryString}` : url;
 };
 
@@ -63,7 +47,7 @@ const statusNames = {
     cancelled: 'Anulată'
 };
 
-function OrderRow({ order, onStatusChange }) { // Removed downloadOrderPDF prop
+function OrderRow({ order, onStatusChange, isSelected, onToggleSelect }) {
     const [isExpanded, setIsExpanded] = useState(false);
 
     const downloadOrderPDF = (order) => {
@@ -72,7 +56,15 @@ function OrderRow({ order, onStatusChange }) { // Removed downloadOrderPDF prop
 
     return (
         <>
-            <TableRow>
+            <TableRow className={isSelected ? 'bg-blue-50/60' : ''}>
+                <TableCell className="w-10 pr-0">
+                    <input 
+                        type="checkbox" 
+                        checked={isSelected} 
+                        onChange={() => onToggleSelect(order.id)}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                </TableCell>
                 <TableCell>
                     <Button variant="ghost" size="sm" onClick={() => setIsExpanded(!isExpanded)}>
                         {isExpanded ? <ChevronUp className="h-4 w-4"/> : <ChevronDown className="h-4 w-4"/>}
@@ -106,14 +98,14 @@ function OrderRow({ order, onStatusChange }) { // Removed downloadOrderPDF prop
             </TableRow>
             {isExpanded && (
                 <TableRow>
-                    <TableCell colSpan={6} className="p-0">
+                    <TableCell colSpan={7} className="p-0">
                         <div className="p-4 bg-slate-50">
                             <div className="flex justify-between items-center mb-4">
                                 <h4 className="font-semibold">Detalii Comandă:</h4>
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => downloadOrderPDF(order)} // Aici se face apelul la funcția locală
+                                    onClick={() => downloadOrderPDF(order)}
                                     className="flex items-center gap-2"
                                 >
                                     <Package className="w-4 h-4" />
@@ -140,7 +132,6 @@ function OrderRow({ order, onStatusChange }) { // Removed downloadOrderPDF prop
                                 )}
                             </div>
 
-                            {/* Informații suplimentare despre comandă */}
                             <div className="mt-4 pt-4 border-t border-slate-200">
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                     <div>
@@ -183,13 +174,16 @@ function OrderRow({ order, onStatusChange }) { // Removed downloadOrderPDF prop
 export default function OrderManager() {
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  // isDownloading nu mai este necesar aici
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const fetchOrders = useCallback(async () => {
     setIsLoading(true);
     try {
       const allOrders = await Order.list('-created_date', 200);
       setOrders(allOrders);
+      setSelectedIds(new Set()); // Reset selection on refresh
     } catch (error) {
       console.error("Failed to fetch orders", error);
     } finally {
@@ -201,12 +195,70 @@ export default function OrderManager() {
     fetchOrders();
   }, [fetchOrders]);
 
+  // Selection handlers
+  const toggleSelect = (orderId) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(orderId)) {
+        next.delete(orderId);
+      } else {
+        next.add(orderId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === orders.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(orders.map(o => o.id)));
+    }
+  };
+
+  const isAllSelected = orders.length > 0 && selectedIds.size === orders.length;
+  const isSomeSelected = selectedIds.size > 0 && selectedIds.size < orders.length;
+
+  // Bulk delete
+  const handleBulkDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const idsToDelete = [...selectedIds];
+      await Promise.all(idsToDelete.map(id => Order.delete(id)));
+      setOrders(prev => prev.filter(o => !selectedIds.has(o.id)));
+      setSelectedIds(new Set());
+      setShowDeleteConfirm(false);
+    } catch (error) {
+      console.error("Failed to delete orders", error);
+      alert('Eroare la ștergerea comenzilor. Încearcă din nou.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Bulk status change
+  const [isChangingStatus, setIsChangingStatus] = useState(false);
+  const handleBulkStatusChange = async (newStatus) => {
+    if (!newStatus) return;
+    setIsChangingStatus(true);
+    try {
+      const ids = [...selectedIds];
+      await Promise.all(ids.map(id => Order.update(id, { status: newStatus })));
+      setOrders(prev => prev.map(o => selectedIds.has(o.id) ? { ...o, status: newStatus } : o));
+      setSelectedIds(new Set());
+    } catch (error) {
+      console.error("Failed to bulk update status", error);
+      alert('Eroare la schimbarea statusului. Încearcă din nou.');
+    } finally {
+      setIsChangingStatus(false);
+    }
+  };
+
   const handleStatusChange = async (orderId, newStatus) => {
       try {
           await Order.update(orderId, { status: newStatus });
           setOrders(prevOrders => prevOrders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
           
-          // NOTIFICARE ADMIN LA SCHIMBARE STATUS (Note: The provided outline sends email to customer, not admin)
           if (newStatus !== 'pending') {
               try {
                   const { SendEmail } = await import('@/integrations/Core');
@@ -236,26 +288,90 @@ export default function OrderManager() {
           }
       } catch (error) {
           console.error("Failed to update order status", error);
-          // Optionally show an error toast to the user
       }
   };
-
-  // Functia downloadOrderPDF a fost mutată în componenta OrderRow și logica complexă de generare PDF a fost înlăturată.
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-slate-800">Management Comenzi</h1>
-        <Button onClick={fetchOrders} variant="outline" disabled={isLoading}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Reîncarcă
-        </Button>
+        <div className="flex items-center gap-3">
+          {selectedIds.size > 0 && (
+            <>
+              <Select onValueChange={handleBulkStatusChange} disabled={isChangingStatus}>
+                <SelectTrigger className="w-52 border-blue-300 bg-blue-50 text-blue-800 font-medium">
+                  {isChangingStatus ? (
+                    <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Se schimbă...</span>
+                  ) : (
+                    <span>Schimbă status ({selectedIds.size})</span>
+                  )}
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(statusNames).map(key => (
+                    <SelectItem key={key} value={key}>
+                      <span className={`inline-block w-2 h-2 rounded-full mr-2 ${statusColors[key]?.split(' ')[0]}`}></span>
+                      {statusNames[key]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button 
+                variant="destructive" 
+                onClick={() => setShowDeleteConfirm(true)} 
+                disabled={isDeleting}
+                className="gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Șterge {selectedIds.size}
+              </Button>
+            </>
+          )}
+          <Button onClick={fetchOrders} variant="outline" disabled={isLoading}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Reîncarcă
+          </Button>
+        </div>
       </div>
+
+      {/* Delete confirmation dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center gap-3 text-red-600">
+              <AlertTriangle className="w-8 h-8" />
+              <h3 className="text-xl font-bold">Confirmare Ștergere</h3>
+            </div>
+            <p className="text-slate-600">
+              Ești sigur că vrei să ștergi <strong>{selectedIds.size}</strong> {selectedIds.size === 1 ? 'comandă' : 'comenzi'}? 
+              Această acțiune este <strong>ireversibilă</strong>.
+            </p>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} disabled={isDeleting}>
+                Anulează
+              </Button>
+              <Button variant="destructive" onClick={handleBulkDelete} disabled={isDeleting} className="gap-2">
+                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                {isDeleting ? 'Se șterge...' : 'Șterge Definitiv'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="rounded-lg border shadow-sm bg-white">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10 pr-0">
+                <input 
+                  type="checkbox"
+                  checked={isAllSelected}
+                  ref={(el) => { if (el) el.indeterminate = isSomeSelected; }}
+                  onChange={toggleSelectAll}
+                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  disabled={orders.length === 0}
+                />
+              </TableHead>
               <TableHead className="w-12"></TableHead>
               <TableHead>Nr. Comandă</TableHead>
               <TableHead>Client</TableHead>
@@ -266,21 +382,40 @@ export default function OrderManager() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={6} className="text-center p-8"><Loader2 className="mx-auto h-8 w-8 animate-spin text-slate-400" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center p-8"><Loader2 className="mx-auto h-8 w-8 animate-spin text-slate-400" /></TableCell></TableRow>
             ) : orders.length > 0 ? (
               orders.map((order) => (
                 <OrderRow
                     key={order.id}
                     order={order}
                     onStatusChange={handleStatusChange}
+                    isSelected={selectedIds.has(order.id)}
+                    onToggleSelect={toggleSelect}
                 />
               ))
             ) : (
-                <TableRow><TableCell colSpan={6} className="text-center p-8 text-slate-500">Nu s-au găsit comenzi.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center p-8 text-slate-500">Nu s-au găsit comenzi.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
       </div>
+
+      {/* Bottom selection info bar */}
+      {selectedIds.size > 0 && (
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+          <span className="text-sm text-blue-800 font-medium">
+            {selectedIds.size} din {orders.length} {selectedIds.size === 1 ? 'comandă selectată' : 'comenzi selectate'}
+          </span>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())} className="text-blue-700 hover:text-blue-900">
+              Deselectează tot
+            </Button>
+            <Button variant="ghost" size="sm" onClick={toggleSelectAll} className="text-blue-700 hover:text-blue-900">
+              Selectează tot
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

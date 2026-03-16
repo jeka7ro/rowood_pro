@@ -44,6 +44,7 @@ import MechanismPresets from '../components/configurator/MechanismPresets';
 import ColorStep from "../components/configurator/ColorStep";
 import GlazingSelector from '../components/configurator/GlazingSelector';
 import ErrorBoundary from "../components/common/ErrorBoundary";
+import AdvancedHardwareSelector from "../components/configurator/AdvancedHardwareSelector";
 import { unpackGlazingMeta } from '@/utils/glazingMeta';
 
 // Lazy load hexFromRal to avoid import-time errors
@@ -461,6 +462,31 @@ export default function ConfiguratorPage() {
       totalWithoutTva += Number(accessory.price) || 0;
     });
 
+    // 11. TRANSPORT
+    if (config.include_transport && material && product) {
+      const productPricing = material.product_specific_pricing?.find(p => p.product_id === product.id);
+      if (productPricing) {
+        const pricePerSqm = config.delivery_country === 'RO'
+          ? Number(productPricing.transport_ro_price_per_sqm) || 0
+          : Number(productPricing.transport_external_price_per_sqm) || 0;
+        const transportCost = totalArea * pricePerSqm;
+        if (transportCost > 0) {
+          breakdown.push({ label: 'Transport', value: transportCost, description: `${totalArea.toFixed(2)} m² × ${pricePerSqm} €/m²` });
+          totalWithoutTva += transportCost;
+        }
+      }
+    }
+
+    // 12. MONTAJ PROFESIONAL
+    if (config.include_installation && config.delivery_country === 'RO' && material && product) {
+      const productPricing = material.product_specific_pricing?.find(p => p.product_id === product.id);
+      const installPrice = Number(productPricing?.installation_price) || Number(productPricing?.hardware_fixed_price) || 0;
+      if (installPrice > 0) {
+        breakdown.push({ label: 'Montaj Profesional', value: installPrice, description: 'Montaj în România' });
+        totalWithoutTva += installPrice;
+      }
+    }
+
     const finalTotalWithoutTva = totalWithoutTva * (Number(config.quantity) || 1);
     const vatAmount = finalTotalWithoutTva * 0.21;
     const finalTotal = finalTotalWithoutTva + vatAmount;
@@ -519,6 +545,12 @@ export default function ConfiguratorPage() {
         newState.glazing_id = null;
         setCurrentStep(3); // pasul 'glazing'
         setActiveTab('glazing');
+      }
+
+      if (key === 'glazing_id' && value) {
+        // Auto-advance to color step when glazing is selected
+        setCurrentStep(4);
+        setActiveTab('color');
       }
 
       if (key === 'sash_configs') {
@@ -988,6 +1020,12 @@ export default function ConfiguratorPage() {
                       isDoor={!!selectedProduct?.category?.includes('usi')}
                       individualSashWidths={config.individual_sash_widths}
                       useIndividualWidths={config.use_individual_widths}
+                      hardware={{
+                         handleColor: config.handle_color,
+                         handleType: config.handle_type,
+                         hingeType: config.hinge_type,
+                         lockType: config.lock_type
+                      }}
                     />
                   </CardContent>
                 </Card>
@@ -1137,12 +1175,18 @@ export default function ConfiguratorPage() {
 
                     {activeTab === 'accessories' &&
                       <ErrorBoundary label="step:accessories">
-                        <AccessorySelector
-                          accessories={accessories}
-                          config={config}
-                          addAccessory={addAccessory}
-                          removeAccessory={removeAccessory}
-                        />
+                        <div className="space-y-8">
+                          <AdvancedHardwareSelector config={config} updateConfig={updateConfig} />
+                          <div className="pt-6 border-t border-slate-200 dark:border-slate-700">
+                             <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Accesorii Suplimentare</h4>
+                             <AccessorySelector
+                                accessories={accessories}
+                                config={config}
+                                addAccessory={addAccessory}
+                                removeAccessory={removeAccessory}
+                             />
+                          </div>
+                        </div>
                       </ErrorBoundary>
                     }
 

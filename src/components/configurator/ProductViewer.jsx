@@ -9,8 +9,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
-import { Settings, MoveHorizontal, MoveVertical, RectangleHorizontal, Check } from 'lucide-react';
+import { Settings, MoveHorizontal, MoveVertical, RectangleHorizontal, Check, Plus } from 'lucide-react';
 import RealisticSlidingGraphic from '../admin/RealisticSlidingGraphic';
+import BlueprintViewer from './BlueprintViewer';
+import ProductViewer3D from './ProductViewer3D';
 import { motion } from 'framer-motion';
 
 // ADD: helper to slightly darken/lighten a hex color
@@ -31,7 +33,7 @@ function shadeHexColor(hex, percent) {
   return '#' + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1);
 }
 
-const SchematicSash = ({ sash, onConfigChange, availableOpeningTypes, isDoor, sashIndex, onSashWidthChange, sashWidth, useIndividualWidths, totalWidth, profileColor, glassColor }) => {
+const SchematicSash = ({ sash, onConfigChange, availableOpeningTypes, isDoor, sashIndex, onSashWidthChange, sashWidth, useIndividualWidths, totalWidth, profileColor, glassColor, hardware }) => {
   const [initialWidth, setInitialWidth] = useState(null);
 
   const openingLabels = {
@@ -60,45 +62,31 @@ const SchematicSash = ({ sash, onConfigChange, availableOpeningTypes, isDoor, sa
   };
 
   const SvgIndicator = () => {
-    if (!sash || !sash.type) return null;
+    if (!sash || !sash.type || sash.type === 'fix') return null;
 
     const commonProps = {
-      stroke: 'rgba(51, 65, 85, 0.7)',
-      strokeWidth: "1.5",
+      stroke: 'rgba(51, 65, 85, 0.4)',
+      strokeWidth: "1",
       fill: 'none',
       vectorEffect: 'non-scaling-stroke'
     };
 
+    const isLeft = sash.direction === 'stanga';
+    
+    // Architecturally, dashed/solid lines point TO the handle. 
+    // If handle is left (stanga), lines converge at X=0 Y=50
+    // If handle is right, lines converge at X=100 Y=50
     const paths = {
-      fix: [
-        "M 35 50 L 65 50",
-        "M 50 35 L 50 65"
-      ],
-      batant: {
-        stanga: "M 90 10 L 10 50 L 90 90",
-        dreapta: "M 10 10 L 90 50 L 10 90"
-      },
-      'oscilo-batant': {
-        stanga: ["M 90 10 L 10 50 L 90 90", "M 10 90 L 50 10 L 90 90"],
-        dreapta: ["M 10 10 L 90 50 L 10 90", "M 10 90 L 50 10 L 90 90"]
-      }
+      batant: isLeft ? ["M 100 0 L 0 50 L 100 100"] : ["M 0 0 L 100 50 L 0 100"],
+      'oscilo-batant': isLeft 
+        ? ["M 100 0 L 0 50 L 100 100", "M 0 100 L 50 0 L 100 100"]
+        : ["M 0 0 L 100 50 L 0 100", "M 0 100 L 50 0 L 100 100"]
     };
 
-    let pathsToDraw = [];
-    const direction = sash.direction || 'dreapta';
-
-    if (sash.type === 'fix') {
-      pathsToDraw = paths.fix;
-    } else if (sash.type === 'batant') {
-      const pathData = paths.batant[direction];
-      if (pathData) pathsToDraw.push(pathData);
-    } else if (sash.type === 'oscilo-batant') {
-      const pathData = paths['oscilo-batant'][direction];
-      if (pathData) pathsToDraw = pathData;
-    }
+    const pathsToDraw = paths[sash.type] || [];
 
     return (
-      <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <svg className="absolute inset-4 w-[calc(100%-2rem)] h-[calc(100%-2rem)] pointer-events-none z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
         {pathsToDraw.map((d, i) => <path key={i} d={d} {...commonProps} />)}
       </svg>
     );
@@ -106,18 +94,89 @@ const SchematicSash = ({ sash, onConfigChange, availableOpeningTypes, isDoor, sa
 
   const Handle = () => {
     if (!sash || sash.type === 'fix' || !sash.type) return null;
+    const isLeft = sash.direction === 'stanga';
+    
+    // Toggle handle direction on click
+    const toggleHandle = (e) => {
+        e.stopPropagation();
+        if (onConfigChange) {
+            onConfigChange({ direction: isLeft ? 'dreapta' : 'stanga' });
+        }
+    };
 
     return (
-      <div
-        className={`absolute top-1/2 -translate-y-1/2 w-1.5 h-10 bg-slate-800 rounded-xl shadow-md transition-colors z-10 ${sash.direction === 'stanga' ? 'left-2' : 'right-2'}`}
-        title="Mâner"
-      />
+      <button
+        onClick={toggleHandle}
+        className={`absolute top-1/2 -translate-y-1/2 w-8 h-12 z-30 flex flex-col items-center justify-center cursor-pointer group/handle transition-transform hover:scale-110 ${isLeft ? 'left-1' : 'right-1'}`}
+        title="Schimbă poziția mânerului"
+      >
+        <div className={`relative w-4 h-12 flex flex-col items-center drop-shadow-md`}>
+            {/* Baseplate */}
+            <div className="w-2.5 h-10 bg-gradient-to-b from-slate-100 to-slate-400 rounded-full border border-slate-500 absolute top-1/2 -translate-y-1/2 group-hover/handle:from-blue-100 group-hover/handle:to-blue-300 transition-colors"></div>
+            {/* Lever */}
+            <div 
+                className={`w-7 h-2.5 rounded-full border border-slate-500 absolute top-1/2 -translate-y-1/2 shadow-sm transition-colors ${isLeft ? 'left-1' : 'right-1'}`}
+                style={{
+                  background: hardware?.handleColor ? `linear-gradient(to right, ${hardware.handleColor}, ${shadeHexColor(hardware.handleColor, -30)})` : 'linear-gradient(to right, #e2e8f0, #94a3b8)'
+                }}
+            ></div>
+        </div>
+      </button>
+    );
+  };
+
+  const Hinges = () => {
+    if (!sash || sash.type === 'fix' || !sash.type) return null;
+    const isLeft = sash.direction === 'stanga';
+    const hingeClass = isLeft ? 'right-0.5' : 'left-0.5';
+
+    return (
+      <>
+        <div className={`absolute top-6 w-1 h-8 bg-gradient-to-b from-slate-200 to-slate-400 rounded-sm border border-slate-500 shadow-sm z-10 ${hingeClass}`}></div>
+        <div className={`absolute bottom-6 w-1 h-8 bg-gradient-to-b from-slate-200 to-slate-400 rounded-sm border border-slate-500 shadow-sm z-10 ${hingeClass}`}></div>
+      </>
     );
   };
 
   const sashStyle = useIndividualWidths && sashWidth && totalWidth ?
     { width: `${(sashWidth / totalWidth) * 100}%` } :
     { flex: 1 };
+
+  const dropdownContent = (
+    <DropdownMenuContent align="end" className="rounded-2xl bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+      <DropdownMenuLabel className="text-slate-900 dark:text-slate-100">Configurare Canat</DropdownMenuLabel>
+      <DropdownMenuSeparator className="bg-slate-200 dark:bg-slate-700" />
+      <DropdownMenuLabel className="text-xs text-slate-600 dark:text-slate-400">Tip Deschidere</DropdownMenuLabel>
+      {availableOpeningTypes
+        .filter(type => type !== 'deschidere' && type !== 'culisant')
+        .map(type => (
+          <DropdownMenuItem key={type} onSelect={() => onConfigChange({ type })} className="text-slate-700 dark:text-slate-300 cursor-pointer">
+            <div className="flex items-center justify-between w-full">
+              <span>{openingLabels[type] || type}</span>
+              {sash.type === type && <Check className="w-4 h-4 text-green-600" />}
+            </div>
+          </DropdownMenuItem>
+        ))}
+      {sash.type !== 'fix' && (
+        <>
+          <DropdownMenuSeparator className="bg-slate-200 dark:bg-slate-700" />
+          <DropdownMenuLabel className="text-xs text-slate-600 dark:text-slate-400">Poziție Mâner</DropdownMenuLabel>
+          <DropdownMenuItem onSelect={() => onConfigChange({ direction: 'stanga' })} className="text-slate-700 dark:text-slate-300 cursor-pointer">
+            <div className="flex items-center justify-between w-full">
+              <span>Stânga</span>
+              {sash.direction === 'stanga' && <Check className="w-4 h-4 text-green-600" />}
+            </div>
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => onConfigChange({ direction: 'dreapta' })} className="text-slate-700 dark:text-slate-300 cursor-pointer">
+            <div className="flex items-center justify-between w-full">
+              <span>Dreapta</span>
+              {sash.direction === 'dreapta' && <Check className="w-4 h-4 text-green-600" />}
+            </div>
+          </DropdownMenuItem>
+        </>
+      )}
+    </DropdownMenuContent>
+  );
 
   return (
     <div
@@ -142,56 +201,73 @@ const SchematicSash = ({ sash, onConfigChange, availableOpeningTypes, isDoor, sa
         </motion.div>
       )}
 
-      <div
-        className="absolute inset-3 rounded-xl pointer-events-none"
-        style={{ backgroundColor: glassColor || 'rgba(233, 238, 245, 0.75)' }}
-      ></div>
+      {/* Rendering Realistic Sash */}
+      {(!sash || sash.type === 'fix') ? (
+        // Fixed Sash: Just Glass
+        <div 
+          className="absolute inset-1.5 rounded-lg pointer-events-none overflow-hidden"
+          style={{ 
+            backgroundColor: glassColor || 'rgba(233, 238, 245, 0.75)',
+            boxShadow: 'inset 0 0 12px rgba(0,0,0,0.1), inset 1px 1px 2px rgba(255,255,255,0.8)',
+            border: '2px solid rgba(0,0,0,0.05)'
+          }}
+        >
+          {/* Glass shine */}
+          <div className="absolute inset-0 opacity-40 bg-gradient-to-tr from-transparent via-white to-transparent" style={{ transform: 'rotate(-45deg) scale(1.5)', backgroundSize: '150% 150%' }}></div>
+        </div>
+      ) : (
+        // Playable Sash: Inner Frame + Glass
+        <div 
+          className="absolute inset-[4px] rounded-lg border-[6px] md:border-[8px] sm:border-[5px] pointer-events-none shadow-sm flex items-center justify-center p-0.5 md:p-1"
+          style={{ 
+            borderColor: profileColor || '#f1f5f9',
+            boxShadow: 'inset 1px 1px 3px rgba(255,255,255,0.7), inset -1px -1px 3px rgba(0,0,0,0.3), 0 2px 5px rgba(0,0,0,0.3)'
+          }}
+        >
+          <div 
+            className="w-full h-full rounded-sm pointer-events-none relative overflow-hidden"
+            style={{ 
+              backgroundColor: glassColor || 'rgba(233, 238, 245, 0.75)',
+              boxShadow: 'inset 0 0 8px rgba(0,0,0,0.2)',
+              border: '1px solid rgba(0,0,0,0.2)'
+            }}
+          >
+            {/* Glass shine */}
+            <div className="absolute inset-0 opacity-50 bg-gradient-to-tr from-transparent via-white to-transparent" style={{ transform: 'rotate(-45deg) scale(1.5)', backgroundSize: '150% 150%' }}></div>
+          </div>
+        </div>
+      )}
 
       <SvgIndicator />
       <Handle />
+      <Hinges />
 
-      <div className="absolute top-1 right-1 z-20">
+      <div className="absolute top-1 right-1 z-30">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="p-1.5 bg-white/70 hover:bg-white rounded-2xl shadow-md transition-all duration-200 opacity-0 group-hover:opacity-100 backdrop-blur-xl">
-              <Settings className="w-4 h-4 text-slate-700" />
+            <button className="p-1.5 bg-white/80 hover:bg-white rounded-2xl shadow-md transition-all duration-200 opacity-90 hover:opacity-100 hover:scale-110 backdrop-blur-xl border border-slate-200 group-hover:block" title="Setări Canat">
+              <Settings className="w-4 h-4 text-indigo-700" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="rounded-2xl bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-            <DropdownMenuLabel className="text-slate-900 dark:text-slate-100">Configurare Canat</DropdownMenuLabel>
-            <DropdownMenuSeparator className="bg-slate-200 dark:bg-slate-700" />
-            <DropdownMenuLabel className="text-xs text-slate-600 dark:text-slate-400">Tip Deschidere</DropdownMenuLabel>
-            {availableOpeningTypes
-              .filter(type => type !== 'deschidere' && type !== 'culisant')
-              .map(type => (
-                <DropdownMenuItem key={type} onSelect={() => onConfigChange({ type })} className="text-slate-700 dark:text-slate-300">
-                  <div className="flex items-center justify-between w-full">
-                    <span>{openingLabels[type] || type}</span>
-                    {sash.type === type && <Check className="w-4 h-4 text-green-600" />}
-                  </div>
-                </DropdownMenuItem>
-              ))}
-            {sash.type !== 'fix' && (
-              <>
-                <DropdownMenuSeparator className="bg-slate-200 dark:bg-slate-700" />
-                <DropdownMenuLabel className="text-xs text-slate-600 dark:text-slate-400">Poziție Mâner</DropdownMenuLabel>
-                <DropdownMenuItem onSelect={() => onConfigChange({ direction: 'stanga' })} className="text-slate-700 dark:text-slate-300">
-                  <div className="flex items-center justify-between w-full">
-                    <span>Stânga</span>
-                    {sash.direction === 'stanga' && <Check className="w-4 h-4 text-green-600" />}
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => onConfigChange({ direction: 'dreapta' })} className="text-slate-700 dark:text-slate-300">
-                  <div className="flex items-center justify-between w-full">
-                    <span>Dreapta</span>
-                    {sash.direction === 'dreapta' && <Check className="w-4 h-4 text-green-600" />}
-                  </div>
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
+          {dropdownContent}
         </DropdownMenu>
       </div>
+
+      {(sash.type === 'fix' || !sash.type) && (
+        <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button 
+                title="Adaugă Deschidere" 
+                className="pointer-events-auto p-4 bg-slate-100/40 hover:bg-white/80 rounded-full shadow-lg transition-all duration-300 backdrop-blur-md group/plus border border-white/50 cursor-pointer hover:scale-110"
+              >
+                <Plus className="w-8 h-8 text-indigo-900/40 group-hover/plus:text-indigo-800 transition-colors" strokeWidth={2.5} />
+              </button>
+            </DropdownMenuTrigger>
+            {dropdownContent}
+          </DropdownMenu>
+        </div>
+      )}
 
       {isDoor && sash && sash.type !== 'fix' && (
         <div className={`absolute bottom-2 h-2 w-8 bg-slate-600 rounded-t-xl ${sash.direction === 'stanga' ? 'left-2' : 'right-2'}`}></div>
@@ -206,8 +282,9 @@ const SchematicSash = ({ sash, onConfigChange, availableOpeningTypes, isDoor, sa
   );
 };
 
-export default function ProductViewer({ product, width, height, material, subMaterial, color, glazing, sashConfigs, onSashConfigChange, isDoor, updateConfig, individualSashWidths, useIndividualWidths }) {
+export default function ProductViewer({ product, width, height, material, subMaterial, color, glazing, sashConfigs, onSashConfigChange, isDoor, updateConfig, individualSashWidths, useIndividualWidths, hardware }) {
   const [initialDragDimensions, setInitialDragDimensions] = useState(null);
+  const [viewMode, setViewMode] = useState('2d'); // '2d', 'blueprint', '3d'
 
   const actualWidth = useIndividualWidths && individualSashWidths?.length > 0 ?
     individualSashWidths.reduce((sum, w) => sum + (w || 0), 0) : width;
@@ -340,8 +417,58 @@ export default function ProductViewer({ product, width, height, material, subMat
   }
 
   return (
-    <Card className="shadow-xl border-none overflow-hidden backdrop-blur-xl">
-      <CardContent className="p-4 md:p-6 lg:p-8 flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-b-[32px]">
+    <Card className="shadow-xl border-none overflow-hidden backdrop-blur-xl md:col-span-2">
+      <div className="flex border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
+        <button 
+          onClick={() => setViewMode('2d')} 
+          className={`flex-1 py-3 text-sm font-medium transition-colors ${viewMode === '2d' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 dark:bg-blue-900/20' : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'}`}
+        >
+          Schematic 2D
+        </button>
+        <button 
+          onClick={() => setViewMode('blueprint')} 
+          className={`flex-1 py-3 text-sm font-medium transition-colors border-l border-slate-200 dark:border-slate-800 ${viewMode === 'blueprint' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 dark:bg-blue-900/20' : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'}`}
+        >
+          Tehnic (Cote)
+        </button>
+        <button 
+          onClick={() => setViewMode('3d')} 
+          className={`flex-1 py-3 text-sm font-medium transition-colors border-l border-slate-200 dark:border-slate-800 ${viewMode === '3d' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 dark:bg-blue-900/20' : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'}`}
+        >
+          Interactiv 3D
+        </button>
+      </div>
+
+      <CardContent className="p-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-b-[32px] overflow-hidden">
+        
+        {viewMode === 'blueprint' && (
+           <BlueprintViewer 
+              product={product} 
+              width={actualWidth} 
+              height={height} 
+              color={color} 
+              sashConfigs={sashConfigs} 
+              individualSashWidths={useIndividualWidths ? individualSashWidths : []}
+              useIndividualWidths={useIndividualWidths}
+              hardware={hardware}
+           />
+        )}
+
+        {viewMode === '3d' && (
+           <ProductViewer3D 
+              product={product} 
+              width={actualWidth} 
+              height={height} 
+              color={color} 
+              sashConfigs={sashConfigs} 
+              individualSashWidths={useIndividualWidths ? individualSashWidths : []}
+              useIndividualWidths={useIndividualWidths}
+              hardware={hardware}
+           />
+        )}
+
+        {viewMode === '2d' && (
+        <div className="w-full relative p-4 md:p-6 lg:p-8 flex flex-col items-center justify-center">
         <div className="w-full max-w-lg flex flex-col items-center justify-center relative">
 
           <div className="absolute left-0 top-0 bottom-0 flex items-center -translate-x-full pr-4">
@@ -388,14 +515,15 @@ export default function ProductViewer({ product, width, height, material, subMat
               </>
             )}
 
-            <div
-              className="absolute inset-0 flex border-[10px] rounded-[32px] shadow-2xl overflow-hidden backdrop-blur-sm"
-              style={{
-                borderColor: frameColor,
-                backgroundColor: 'transparent',
-                boxShadow: `0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04), inset 0 2px 4px 0 rgba(0,0,0,0.06)`
-              }}
-            >
+              <div
+                className="absolute inset-0 flex border-[12px] md:border-[16px] rounded-[16px] shadow-2xl overflow-hidden backdrop-blur-sm"
+                style={{
+                  borderColor: frameColor,
+                  backgroundColor: 'transparent',
+                  // Enhance the outer frame 3D bevel look
+                  boxShadow: `inset 2px 2px 6px rgba(255,255,255,0.4), inset -2px -2px 6px rgba(0,0,0,0.4), 0 20px 25px -5px rgba(0,0,0,0.3)`
+                }}
+              >
               {sashConfigs && sashConfigs.length > 0 ? (
                 sashConfigs.map((sash, index) => (
                   <SchematicSash
@@ -411,6 +539,7 @@ export default function ProductViewer({ product, width, height, material, subMat
                     useIndividualWidths={useIndividualWidths}
                     profileColor={innerProfileColor}
                     glassColor={glassBackgroundColor}
+                    hardware={hardware}
                   />
                 ))
               ) : (
@@ -432,6 +561,8 @@ export default function ProductViewer({ product, width, height, material, subMat
             </span>
           </div>
         </div>
+        </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -51,13 +51,14 @@ export default function MyOrdersPage() {
       }
     } catch (e) {
       console.error("Error fetching user/orders:", e);
-      if (e.message && e.message.includes("Network Error")) {
-        setError('NETWORK_ERROR');
-      } else if (e.response && e.response.status === 401) {
+      const status = e?.response?.status || e?.status;
+      if (status === 401 || !user) {
         setError('NOT_AUTHENTICATED');
-      }
-      else {
-        setError('GENERIC_FETCH_ERROR');
+      } else if (e.message && e.message.includes("Network Error")) {
+        setError('NETWORK_ERROR');
+      } else {
+        // Default to NOT_AUTHENTICATED for auth.me() failures
+        setError('NOT_AUTHENTICATED');
       }
     } finally {
       setIsLoading(false);

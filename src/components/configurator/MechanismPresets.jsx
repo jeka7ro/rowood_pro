@@ -2,7 +2,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Settings, ArrowRight, CheckCircle } from "lucide-react";
+import { Settings, ArrowRight, CheckCircle, Hand } from "lucide-react";
 import SlidingConfigurationGraphic from "../admin/SlidingConfigurationGraphic";
 
 // Componentă pentru un canat individual cu styling îmbunătățit
@@ -15,7 +15,7 @@ const SingleSash = ({ type, index, total }) => {
   const opensLeft = index % 2 === 0;
   
   return (
-    <div className="relative flex-1 h-32 border-4 border-slate-400 bg-blue-100/50 rounded-sm">
+    <div className="relative flex-1 h-24 border-2 border-slate-400 bg-blue-100/50 rounded-sm">
       {/* Fundal sticlă */}
       <div className="absolute inset-2 bg-blue-50/80 rounded-sm" />
       
@@ -92,8 +92,8 @@ const StandardMechanismGraphic = ({ pattern }) => {
   if (!pattern || pattern.length === 0) return null;
 
   return (
-    <div className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border-2 border-slate-200 dark:border-slate-600">
-      <div className="flex gap-0" style={{ height: '140px' }}>
+    <div className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border-2 border-slate-200 dark:border-slate-600">
+      <div className="flex gap-0" style={{ height: '100px' }}>
         {pattern.map((type, index) => (
           <SingleSash 
             key={index} 
@@ -275,7 +275,66 @@ export default function MechanismPresets({
 
   return (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-xl p-6">
+      {/* Handle Position Controls */}
+      {currentSashConfigs && currentSashConfigs.length > 0 && currentSashConfigs.some(s => s.type !== 'fix') && (
+        <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-xl p-5 mb-2">
+          <div className="flex items-center gap-2 mb-4">
+            <Hand className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+            <div>
+              <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Poziție Mâner (Configurare detaliată)</h4>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Selectează pe ce parte dorești manerul pentru fiecare canat mobil.
+              </p>
+            </div>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-4">
+            {currentSashConfigs.map((sash, index) => {
+              if (sash.type === 'fix') return null;
+              const isLeft = sash.direction === 'stanga';
+              return (
+                <div key={index} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                  <div className="font-medium text-slate-700 dark:text-slate-300">
+                    Canat {index + 1} <span className="text-xs text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-full ml-2 capitalize">{sash.type}</span>
+                  </div>
+                  <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl border border-slate-300 dark:border-slate-700 shadow-inner">
+                    <button
+                      onClick={() => {
+                          const newConfigs = [...currentSashConfigs];
+                          newConfigs[index] = { ...newConfigs[index], direction: 'stanga' };
+                          updateConfig("sash_configs", newConfigs);
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                        isLeft 
+                          ? 'bg-white dark:bg-slate-600 text-teal-700 dark:text-teal-300 shadow-sm border border-slate-300 dark:border-slate-500' 
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      Stânga
+                    </button>
+                    <button
+                      onClick={() => {
+                          const newConfigs = [...currentSashConfigs];
+                          newConfigs[index] = { ...newConfigs[index], direction: 'dreapta' };
+                          updateConfig("sash_configs", newConfigs);
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                        !isLeft 
+                          ? 'bg-white dark:bg-slate-600 text-teal-700 dark:text-teal-300 shadow-sm border border-slate-300 dark:border-slate-500' 
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      Dreapta
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-xl p-5">
         <div className="mb-6">
           <h3 className="flex items-center gap-2 text-lg font-semibold text-slate-800 dark:text-slate-100">
             <Settings className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
@@ -286,7 +345,7 @@ export default function MechanismPresets({
           </p>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
           {presets.map((p) => {
             const selected = isSelected(p.pattern);
             return (
@@ -321,7 +380,7 @@ export default function MechanismPresets({
         </div>
 
         {presets.length === 0 && (
-          <div className="text-center text-slate-500 dark:text-slate-400 py-8">
+          <div className="text-center text-slate-500 dark:text-slate-400 py-6">
             Nu există preseturi definite pentru acest produs.
           </div>
         )}

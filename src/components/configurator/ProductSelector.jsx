@@ -380,6 +380,16 @@ export default function ProductSelector({ products, config, updateConfig }) {
     if (selectedCategory === 'ferestre') return cat !== 'usi' && cat !== 'usi-balcon' && !name.includes('culisant') && !product?.supports_sliding;
     
     return true; // fallback
+  }).sort((a, b) => {
+    // Sort by sash count: Standard (1) → Dublă (2) → Triplă (3)
+    const getSashOrder = (p) => {
+      const n = p?.name?.toLowerCase() || '';
+      if (n.includes('standard') || (!n.includes('dubl') && !n.includes('tripl'))) return 1;
+      if (n.includes('dubl')) return 2;
+      if (n.includes('tripl')) return 3;
+      return 4;
+    };
+    return getSashOrder(a) - getSashOrder(b);
   });
 
   return (
@@ -391,24 +401,34 @@ export default function ProductSelector({ products, config, updateConfig }) {
             Selectează o categorie principală de tâmplărie pentru a vedea variantele și formele disponibile.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-4 sm:px-0">
             {categories.map((cat) => (
               <div
                 key={cat.id}
                 onClick={() => handleSelectCategory(cat.id)}
-                className="cursor-pointer group flex flex-col liquid-glass bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 border-2 border-transparent hover:border-green-500 rounded-[24px] transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 overflow-hidden"
+                className="relative cursor-pointer group flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl transition-all duration-500 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] hover:-translate-y-2 overflow-hidden"
               >
-                <div className="relative aspect-[4/3] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 p-6 sm:p-8 flex items-center justify-center">
-                  <div className="w-28 h-28 sm:w-32 sm:h-32 flex items-center justify-center transform transition-transform duration-500 group-hover:scale-110">
+                {/* Decorative background glow on hover */}
+                <div className="absolute inset-0 bg-gradient-to-br from-green-500/0 to-emerald-500/0 group-hover:from-green-500/5 group-hover:to-emerald-500/5 transition-colors duration-500" />
+                
+                <div className="relative h-48 bg-gradient-to-br from-slate-100 to-slate-200/80 dark:from-slate-800/80 dark:to-slate-900 border-b border-slate-200 dark:border-slate-800 p-8 flex items-center justify-center overflow-hidden">
+                  {/* Subtle pattern in the background */}
+                  <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMCwwLDAsMC4wNSkiLz48L3N2Zz4=')] [mask-image:linear-gradient(to_bottom,white,transparent)] opacity-40 dark:opacity-20 transition-opacity duration-500 group-hover:opacity-80" />
+                  
+                  <div className="relative w-32 h-32 flex items-center justify-center transform transition-all duration-500 group-hover:scale-110 drop-shadow-xl group-hover:drop-shadow-2xl">
                     {cat.svg}
                   </div>
                 </div>
-                <div className="p-5 flex-1 flex flex-col border-t border-slate-100 dark:border-slate-700/50 text-center">
-                  <div className="w-10 h-10 mx-auto rounded-[14px] bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-3">
-                    <cat.icon className="w-5 h-5 text-green-600 dark:text-green-400" />
+                
+                <div className="relative p-6 flex flex-col text-center border-t border-slate-100 dark:border-slate-800">
+                  <div>
+                    <h4 className="font-bold text-lg text-slate-900 dark:text-slate-100 mb-2 transition-colors duration-300 group-hover:text-green-600 dark:group-hover:text-green-400">
+                      {cat.title}
+                    </h4>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed min-h-[40px]">
+                      {cat.desc}
+                    </p>
                   </div>
-                  <h4 className="font-bold text-lg text-slate-900 dark:text-slate-100 mb-2">{cat.title}</h4>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 flex-1">{cat.desc}</p>
                 </div>
               </div>
             ))}
@@ -432,49 +452,57 @@ export default function ProductSelector({ products, config, updateConfig }) {
 
           <div className="flex flex-wrap justify-center gap-5">
             {filteredProducts.length === 0 ? (
-               <div className="w-full text-center py-12 px-4 rounded-[24px] border-2 border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-                 <p className="text-slate-500 dark:text-slate-400">Nu am găsit produse active în această categorie.</p>
+               <div className="w-full text-center py-16 px-6 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                 <p className="text-slate-500 dark:text-slate-400 text-lg">Nu am găsit produse active în această categorie.</p>
                </div>
             ) : filteredProducts.map((product) => {
               const isSelected = product.id === config.product_id;
 
               return (
-            <div
-              key={product.id}
-              onClick={() => updateConfig('product_id', product.id)}
-              className={`cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-2xl bg-white dark:bg-slate-800 w-[200px] flex-shrink-0 overflow-hidden ${
-                isSelected 
-                  ? 'ring-4 ring-green-500 dark:ring-green-400 shadow-xl shadow-green-500/30' 
-                  : 'ring-1 ring-slate-200 dark:ring-slate-600 hover:ring-green-300 dark:hover:ring-green-600'
-              }`}
-              style={{ borderRadius: 0 }}
-            >
-              <div className="relative aspect-[4/3] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-600 overflow-hidden flex items-center justify-center p-3">
-                {getProductSVG(product)}
-                
-                {isSelected && (
-                  <div className="absolute top-2 right-2 bg-green-600 text-white rounded-full p-1.5 shadow-lg">
-                    <CheckCircle2 className="w-5 h-5" />
+                <div
+                  key={product.id}
+                  onClick={() => updateConfig('product_id', product.id)}
+                  className={`relative cursor-pointer transition-all duration-300 hover:-translate-y-1 w-[220px] flex-shrink-0 rounded-[20px] overflow-hidden bg-white dark:bg-slate-900 ${
+                    isSelected 
+                      ? 'shadow-[0_0_0_2px_rgba(22,163,74,1),0_10px_20px_-10px_rgba(22,163,74,0.4)] ring-2 ring-white dark:ring-slate-900' 
+                      : 'shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-xl hover:border-slate-300 dark:hover:border-slate-600'
+                  }`}
+                >
+                  {isSelected && (
+                    <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden z-20">
+                      <div className="absolute top-0 right-0 bg-green-600 text-white w-20 h-20 origin-bottom-left rotate-45 flex items-end justify-center pb-2 translate-x-10 -translate-y-10 shadow-lg">
+                        <CheckCircle2 className="w-5 h-5 -rotate-45" />
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className={`relative h-44 flex items-center justify-center p-6 ${isSelected ? 'bg-green-50 dark:bg-green-900/20' : 'bg-gradient-to-br from-slate-100 to-slate-200/80 dark:from-slate-800/80 dark:to-slate-800/50'} transition-colors duration-300`}>
+                    {/* Subtle pattern in the background */}
+                    {!isSelected && (
+                      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMCwwLDAsMC4wNSkiLz48L3N2Zz4=')] [mask-image:linear-gradient(to_bottom,white,transparent)] opacity-30 dark:opacity-10" />
+                    )}
+                    <div className={`relative w-full h-full transform transition-transform duration-500 ${isSelected ? 'scale-110 drop-shadow-xl' : 'scale-100 drop-shadow-md hover:scale-105'}`}>
+                      {getProductSVG(product)}
+                    </div>
+                    
+                    <div className="absolute top-3 left-3 flex flex-col gap-1 z-10">
+                      {product.is_featured && (
+                        <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white border-0 shadow-sm text-xs px-2.5 py-0.5">Top</Badge>
+                      )}
+                      {product.is_on_promotion && (
+                        <Badge className="bg-rose-500 hover:bg-rose-600 text-white border-0 shadow-sm text-xs px-2.5 py-0.5">Promo</Badge>
+                      )}
+                    </div>
                   </div>
-                )}
-                {product.is_featured && (
-                  <div className="absolute top-2 left-2">
-                    <Badge variant="default" className="bg-green-600 text-white text-xs px-2 py-1 rounded-none">Top</Badge>
-                  </div>
-                )}
-                {product.is_on_promotion && (
-                  <div className="absolute bottom-2 left-2">
-                    <Badge variant="destructive" className="bg-red-600 text-white text-xs px-2 py-1 rounded-none">Promoție</Badge>
-                  </div>
-                )}
-              </div>
 
-              <div className="p-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
-                <h4 className="font-bold text-sm text-slate-900 dark:text-slate-50 text-center leading-tight">{product.name}</h4>
-              </div>
-            </div>
-          );
-        })}
+                  <div className={`p-4 border-t transition-colors duration-300 ${isSelected ? 'border-green-100 dark:border-green-800/50' : 'border-slate-100 dark:border-slate-800'}`}>
+                    <h4 className={`font-bold text-[15px] text-center leading-snug ${isSelected ? 'text-green-700 dark:text-green-400' : 'text-slate-800 dark:text-slate-200'}`}>
+                      {product.name}
+                    </h4>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </>
       )}

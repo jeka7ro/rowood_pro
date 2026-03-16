@@ -449,9 +449,11 @@ export default function CheckoutPage() {
     setIsPlacingOrder(true);
     try {
       const itemsToProcess = [...cartItems];
-      const [products, colors] = await Promise.all([
+      const [products, colors, materials, glazingTypes] = await Promise.all([
         base44.entities.Product.list(),
-        base44.entities.Color.list()
+        base44.entities.Color.list(),
+        base44.entities.Material.list(),
+        base44.entities.GlazingType.list()
       ]);
 
       // 1. Creare și Salvare Configurații
@@ -481,26 +483,46 @@ export default function CheckoutPage() {
         return await base44.entities.Configuration.create(configData);
       }));
 
-      // 2. Creare Comandă CU STATUS PENDING_PAYMENT (NU confirmed!)
-      const orderData = {
-        customer_type: formData.customer_type,
-        customer_name: formData.customer_name,
-        customer_email: formData.customer_email,
-        customer_phone: formData.customer_phone,
-        company_name: formData.customer_type === 'business' ? formData.company_name : undefined,
-        cui: formData.customer_type === 'business' ? formData.cui_prefix + formData.cui_number : undefined,
-        reg_com: formData.customer_type === 'business' ? formData.reg_com : undefined,
-        billing_address: formData.billing_address,
-        delivery_address: formData.use_billing_for_delivery ? formData.billing_address : formData.delivery_address,
-        configurations: savedConfigurations.map(config => config.id),
-        total_amount: finalTotal,
-        transport_cost: isVatExempt ? transportInstallationTotal / 1.21 : transportInstallationTotal,
-        extra_total: isVatExempt ? transportInstallationTotal / 1.21 : transportInstallationTotal,
-        status: 'pending',  // Status PENDING până la plată
-        payment_status: 'pending',  // Payment status PENDING
-        vat_exempt: isVatExempt,  // Flag pentru scutire TVA
-        vat_country: isVatExempt ? formData.cui_prefix : null  // Țara VAT pentru scutire
-      };
+        // Build configuration snapshots for FactoryManager (embedded on Order)
+        const configuration_snapshots = itemsToProcess.map((item) => {
+          const config = item.configuration || {};
+          const product = products.find(p => p.id === item.product_id);
+          const material = materials.find(m => m.id === config.material_id);
+          const glazing = glazingTypes.find(g => g.id === config.glazing_id);
+          return {
+            product_name: product?.name || item.product_name || 'Produs',
+            width: config.width || 800,
+            height: config.height || 1200,
+            quantity: item.quantity || 1,
+            material_name: material?.name || 'PVC',
+            glazing_name: glazing?.name || 'Sticlă Dublă',
+            sash_configs: config.sash_configs || [],
+            opening_type_summary: config.opening_type_summary || '',
+            price: item.price || 0,
+          };
+        });
+
+        // 2. Creare Comandă CU STATUS PENDING_PAYMENT (NU confirmed!)
+        const orderData = {
+          customer_type: formData.customer_type,
+          customer_name: formData.customer_name,
+          customer_email: formData.customer_email,
+          customer_phone: formData.customer_phone,
+          company_name: formData.customer_type === 'business' ? formData.company_name : undefined,
+          cui: formData.customer_type === 'business' ? formData.cui_prefix + formData.cui_number : undefined,
+          reg_com: formData.customer_type === 'business' ? formData.reg_com : undefined,
+          billing_address: formData.billing_address,
+          delivery_address: formData.use_billing_for_delivery ? formData.billing_address : formData.delivery_address,
+          configurations: savedConfigurations.map(config => config.id),
+          configuration_snapshots: configuration_snapshots,
+          total_amount: finalTotal,
+          transport_cost: isVatExempt ? transportInstallationTotal / 1.21 : transportInstallationTotal,
+          extra_total: isVatExempt ? transportInstallationTotal / 1.21 : transportInstallationTotal,
+          status: 'pending',
+          payment_status: 'pending',
+          vat_exempt: isVatExempt,
+          vat_country: isVatExempt ? formData.cui_prefix : null
+        };
       const newOrder = await base44.entities.Order.create(orderData);
 
       // 3. Ștergere Coș

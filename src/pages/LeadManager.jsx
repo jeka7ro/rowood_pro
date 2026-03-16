@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Lead, User } from '@/entities/all';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -35,7 +37,9 @@ import {
   Target,
   Phone,
   Mail,
-  Building2
+  Building2,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useTranslation } from '../components/translations/TranslationProvider';
@@ -48,6 +52,94 @@ const statusColors = {
   negotiation: 'bg-indigo-100 text-indigo-800',
   won: 'bg-green-100 text-green-800',
   lost: 'bg-red-100 text-red-800'
+};
+
+const stageNames = {
+  new: 'Nou',
+  contacted: 'Contactat',
+  qualified: 'Calificat',
+  proposal: 'Propunere',
+  negotiation: 'Negociere',
+  won: 'Câștigat',
+  lost: 'Pierdut'
+};
+
+const stages = ['new', 'contacted', 'qualified', 'proposal', 'negotiation', 'won', 'lost'];
+
+const LeadCard = ({ lead, index, onEdit }) => (
+  <Draggable draggableId={lead.id.toString()} index={index}>
+    {(provided) => (
+      <div
+        ref={provided.innerRef}
+        {...provided.draggableProps}
+        {...provided.dragHandleProps}
+        className="mb-3"
+      >
+        <Card className="hover:shadow-md transition-all duration-200 group cursor-pointer bg-white border-slate-200 hover:border-green-300">
+          <CardContent className="p-4 relative flex flex-col gap-2">
+            <Button
+              variant="ghost" size="icon"
+              className="absolute top-2 right-2 w-7 h-7 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-50 hover:bg-slate-100 rounded-full"
+              onClick={() => onEdit(lead)}
+            >
+              <Edit className="w-3.5 h-3.5 text-slate-500" />
+            </Button>
+            <div className="font-semibold text-slate-800 pr-6 truncate">{lead.first_name} {lead.last_name}</div>
+            
+            <div className="text-sm text-slate-500 flex items-center gap-1.5">
+              <Mail className="w-3 h-3 text-slate-400 flex-shrink-0" />
+              <span className="truncate">{lead.email}</span>
+            </div>
+            {lead.phone && (
+               <div className="text-sm text-slate-500 flex items-center gap-1.5">
+                 <Phone className="w-3 h-3 text-slate-400 flex-shrink-0" /> 
+                 <span className="truncate">{lead.phone}</span>
+               </div>
+            )}
+            
+            {lead.company && (
+              <div className="text-sm font-medium text-slate-600 flex items-center gap-1.5 mt-1 bg-slate-50 p-1.5 rounded-md border border-slate-100">
+                <Building2 className="w-3.5 h-3.5 text-slate-400 flex-shrink-0"/> 
+                <span className="truncate">{lead.company}</span>
+              </div>
+            )}
+            
+            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-50">
+               <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-wider">{lead.source?.replace('_', ' ')}</Badge>
+               {lead.budget && (
+                 <span className="text-xs font-bold text-green-700 ml-auto">€{lead.budget.toLocaleString()}</span>
+               )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )}
+  </Draggable>
+);
+
+const PipelineColumn = ({ stage, leads, onEditLead }) => {
+  return (
+    <div className="w-[300px] bg-slate-100/60 rounded-xl p-2.5 flex-shrink-0 border border-slate-200/60 flex flex-col max-h-[calc(100vh-250px)]">
+      <div className="p-1 mb-3 flex items-center justify-between sticky top-0 bg-slate-100/60 backdrop-blur-sm z-10">
+        <h3 className="font-semibold text-slate-700 flex items-center gap-2">
+          <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${statusColors[stage]}`}>
+            {stageNames[stage]}
+          </span>
+        </h3>
+        <span className="text-sm font-bold text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-full shadow-sm">{leads.length}</span>
+      </div>
+      <Droppable droppableId={stage}>
+        {(provided) => (
+          <div ref={provided.innerRef} {...provided.droppableProps} className="flex-1 overflow-y-auto px-1 pb-4 min-h-[150px] custom-scrollbar">
+            {leads.map((lead, index) => (
+              <LeadCard key={lead.id} lead={lead} index={index} onEdit={onEditLead} />
+            ))}
+            {provided.placeholder}
+          </div>
+        )}
+      </Droppable>
+    </div>
+  );
 };
 
 function LeadForm({ lead, users, onSave, onCancel, isOpen }) {
@@ -225,6 +317,7 @@ export default function LeadManager() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [editingLead, setEditingLead] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [viewMode, setViewMode] = useState('board'); // 'board' sau 'list'
 
   const fetchLeads = useCallback(async () => {
     setIsLoading(true);
@@ -264,6 +357,27 @@ export default function LeadManager() {
     }
   };
 
+  const onDragEnd = async (result) => {
+    const { source, destination, draggableId } = result;
+    if (!destination || (source.droppableId === destination.droppableId)) return;
+
+    // Actualizare optimistă UI
+    const updatedLeads = leads.map(lead => {
+      if (lead.id.toString() === draggableId) {
+        return { ...lead, status: destination.droppableId };
+      }
+      return lead;
+    });
+    setLeads(updatedLeads);
+
+    try {
+      await Lead.update(draggableId, { status: destination.droppableId });
+    } catch (error) {
+      console.error("Failed to update lead status:", error);
+      fetchLeads(); // Revert back
+    }
+  };
+
   const filteredLeads = leads.filter(lead => {
     const matchesSearch = `${lead.first_name} ${lead.last_name} ${lead.email} ${lead.company}`.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
@@ -280,36 +394,56 @@ export default function LeadManager() {
           </h1>
           <p className="text-slate-600 mt-1">{t('leadManager.description')}</p>
         </div>
-        <Button onClick={() => { setEditingLead(null); setIsFormOpen(true); }} className="bg-green-600 hover:bg-green-700">
+        <Button onClick={() => { setEditingLead(null); setIsFormOpen(true); }} className="bg-green-600 hover:bg-green-700 shadow-md">
           <PlusCircle className="w-4 h-4 mr-2" /> 
           {t('leadManager.addLead')}
         </Button>
       </div>
       
-      <div className="flex gap-4 mb-6">
-        <div className="relative flex-1">
+      <div className="flex gap-4 mb-6 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 items-center">
+        <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
           <Input 
-            placeholder="Caută lead-uri..."
+            placeholder="Caută lead după nume, companie sau email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 bg-slate-50 border-transparent focus:bg-white focus:border-green-500 rounded-xl"
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-48 bg-slate-50 border-transparent rounded-xl">
             <SelectValue placeholder="Filtrează după status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Toate statusurile</SelectItem>
-            <SelectItem value="new">Nou</SelectItem>
-            <SelectItem value="contacted">Contactat</SelectItem>
-            <SelectItem value="qualified">Calificat</SelectItem>
-            <SelectItem value="proposal">Propunere</SelectItem>
-            <SelectItem value="won">Câștigat</SelectItem>
-            <SelectItem value="lost">Pierdut</SelectItem>
+            {stages.map(stage => (
+              <SelectItem key={stage} value={stage}>{stageNames[stage]}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
+        
+        <div className="h-10 w-px bg-slate-200 mx-2"></div>
+        
+        <div className="flex items-center p-1 bg-slate-100 rounded-xl">
+          <Button 
+            variant={viewMode === 'board' ? 'default' : 'ghost'} 
+            size="sm" 
+            onClick={() => setViewMode('board')}
+            className={`rounded-lg px-3 ${viewMode === 'board' ? 'bg-white text-green-700 shadow-sm hover:bg-white' : 'text-slate-500 hover:text-slate-700'}`}
+          >
+            <LayoutGrid className="w-4 h-4 mr-1.5" />
+            Board
+          </Button>
+          <Button 
+            variant={viewMode === 'list' ? 'default' : 'ghost'} 
+            size="sm" 
+            onClick={() => setViewMode('list')}
+            className={`rounded-lg px-3 ${viewMode === 'list' ? 'bg-white text-green-700 shadow-sm hover:bg-white' : 'text-slate-500 hover:text-slate-700'}`}
+          >
+            <List className="w-4 h-4 mr-1.5" />
+            Listă
+          </Button>
+        </div>
       </div>
 
       <LeadForm
@@ -320,8 +454,34 @@ export default function LeadManager() {
         isOpen={isFormOpen}
       />
       
-      <div className="rounded-xl border border-slate-200 shadow-sm bg-white overflow-hidden">
-        <Table>
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+           <Loader2 className="h-10 w-10 animate-spin text-green-500" />
+        </div>
+      ) : viewMode === 'board' ? (
+        <DragDropContext onDragEnd={onDragEnd}>
+          <div className="flex gap-4 overflow-x-auto pb-4 px-1 custom-scrollbar">
+            {stages.map(stage => {
+              // Dacă e aplicat filtrul de status din dropdown, ascundem celelalte coloane complet?
+              // Sau doar ascundem itemii? Cel mai bine: dacă e fixat pe 'all', randează tot. 
+              // Dacă a ales un anume status, randează doar coloana aia.
+              if (statusFilter !== 'all' && statusFilter !== stage) return null;
+              
+              const columnLeads = filteredLeads.filter(l => l.status === stage);
+              return (
+                <PipelineColumn 
+                  key={stage} 
+                  stage={stage} 
+                  leads={columnLeads} 
+                  onEditLead={(lead) => { setEditingLead(lead); setIsFormOpen(true); }} 
+                />
+              );
+            })}
+          </div>
+        </DragDropContext>
+      ) : (
+        <div className="rounded-2xl border border-slate-200 shadow-sm bg-white overflow-hidden">
+          <Table>
           <TableHeader>
             <TableRow className="bg-slate-50">
               <TableHead>{t('leadManager.table.contact')}</TableHead>
@@ -394,6 +554,7 @@ export default function LeadManager() {
           </TableBody>
         </Table>
       </div>
+      )}
     </div>
   );
 }
