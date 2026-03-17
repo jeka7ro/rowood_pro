@@ -40,17 +40,18 @@ const AdvancedBOMEngine = (item, techSettings = DEFAULT_TECH_SETTINGS) => {
   const isPVC = item.material_name?.toLowerCase().includes('pvc') || true; // Majoritatea folosesc armătură
   
   // RAMA
+  const posNr = String(item._posIndex || 1).padStart(3, '0');
   const profiles = [
-    { reper: 'Ramă Sus (Toc)', q: 1, latimeT: latimeProfilRama, lgBrut: w, unghiSt: 45, unghiDr: 45, cotaNeta: w - deducereSudura*2, tip: item.material_name, codBara: `RM-H-${w}-4545` },
-    { reper: 'Ramă Jos (Toc)', q: 1, latimeT: latimeProfilRama, lgBrut: w, unghiSt: 45, unghiDr: 45, cotaNeta: w - deducereSudura*2, tip: item.material_name, codBara: `RM-H-${w}-4545` },
-    { reper: 'Ramă Stânga (Toc)', q: 1, latimeT: latimeProfilRama, lgBrut: h, unghiSt: 45, unghiDr: 45, cotaNeta: h - deducereSudura*2, tip: item.material_name, codBara: `RM-V-${h}-4545`},
-    { reper: 'Ramă Dreapta (Toc)', q: 1, latimeT: latimeProfilRama, lgBrut: h, unghiSt: 45, unghiDr: 45, cotaNeta: h - deducereSudura*2, tip: item.material_name, codBara: `RM-V-${h}-4545` }
+    { reper: 'Ramă Sus (Toc)', q: 1, latimeT: latimeProfilRama, lgBrut: w, unghiSt: 45, unghiDr: 45, cotaNeta: w - deducereSudura*2, tip: item.material_name, codBara: `RM-H-${w}-4545`, pozitie: `${posNr}.Top`, categorie: 'Ramă (Toc)' },
+    { reper: 'Ramă Jos (Toc)', q: 1, latimeT: latimeProfilRama, lgBrut: w, unghiSt: 45, unghiDr: 45, cotaNeta: w - deducereSudura*2, tip: item.material_name, codBara: `RM-H-${w}-4545`, pozitie: `${posNr}.Bottom`, categorie: 'Ramă (Toc)' },
+    { reper: 'Ramă Stânga (Toc)', q: 1, latimeT: latimeProfilRama, lgBrut: h, unghiSt: 45, unghiDr: 45, cotaNeta: h - deducereSudura*2, tip: item.material_name, codBara: `RM-V-${h}-4545`, pozitie: `${posNr}.Left`, categorie: 'Ramă (Toc)' },
+    { reper: 'Ramă Dreapta (Toc)', q: 1, latimeT: latimeProfilRama, lgBrut: h, unghiSt: 45, unghiDr: 45, cotaNeta: h - deducereSudura*2, tip: item.material_name, codBara: `RM-V-${h}-4545`, pozitie: `${posNr}.Right`, categorie: 'Ramă (Toc)' }
   ];
 
   // ARMĂTURĂ RAMĂ (Tăiere la 90 grade, mai scurtă cu deducereArmatura)
   if (isPVC) {
-    profiles.push({ reper: 'Armătură Ramă Orizontală', q: 2, latimeT: 30, lgBrut: w - deducereArmatura, unghiSt: 90, unghiDr: 90, cotaNeta: w - deducereArmatura, tip: 'Metal', codBara: `AR-H-${w-deducereArmatura}-9090` });
-    profiles.push({ reper: 'Armătură Ramă Verticală', q: 2, latimeT: 30, lgBrut: h - deducereArmatura, unghiSt: 90, unghiDr: 90, cotaNeta: h - deducereArmatura, tip: 'Metal', codBara: `AR-V-${h-deducereArmatura}-9090` });
+    profiles.push({ reper: 'Armătură Ramă Orizontală', q: 2, latimeT: 30, lgBrut: w - deducereArmatura, unghiSt: 90, unghiDr: 90, cotaNeta: w - deducereArmatura, tip: 'Metal', codBara: `AR-H-${w-deducereArmatura}-9090`, pozitie: `${posNr}.Top+Bot`, categorie: 'Armătură' });
+    profiles.push({ reper: 'Armătură Ramă Verticală', q: 2, latimeT: 30, lgBrut: h - deducereArmatura, unghiSt: 90, unghiDr: 90, cotaNeta: h - deducereArmatura, tip: 'Metal', codBara: `AR-V-${h-deducereArmatura}-9090`, pozitie: `${posNr}.Left+Right`, categorie: 'Armătură' });
   }
 
   // CERCEVEA (Daca nu e fix)
@@ -62,12 +63,12 @@ const AdvancedBOMEngine = (item, techSettings = DEFAULT_TECH_SETTINGS) => {
     lgCerceveaOriz = w - (2 * latimeProfilRama) + 16; 
     lgCerceveaVert = h - (2 * latimeProfilRama) + 16;
     
-    profiles.push({ reper: 'Cercevea Orizontală', q: 2, latimeT: latimeProfilCercevea, lgBrut: lgCerceveaOriz, unghiSt: 45, unghiDr: 45, cotaNeta: lgCerceveaOriz - deducereSudura*2, tip: item.material_name, codBara: `CR-H-${lgCerceveaOriz}-4545` });
-    profiles.push({ reper: 'Cercevea Verticală', q: 2, latimeT: latimeProfilCercevea, lgBrut: lgCerceveaVert, unghiSt: 45, unghiDr: 45, cotaNeta: lgCerceveaVert - deducereSudura*2, tip: item.material_name, codBara: `CR-V-${lgCerceveaVert}-4545` });
+    profiles.push({ reper: 'Cercevea Orizontală', q: 2, latimeT: latimeProfilCercevea, lgBrut: lgCerceveaOriz, unghiSt: 45, unghiDr: 45, cotaNeta: lgCerceveaOriz - deducereSudura*2, tip: item.material_name, codBara: `CR-H-${lgCerceveaOriz}-4545`, pozitie: `${posNr}.A:Top+Bot`, categorie: 'Cercevea' });
+    profiles.push({ reper: 'Cercevea Verticală', q: 2, latimeT: latimeProfilCercevea, lgBrut: lgCerceveaVert, unghiSt: 45, unghiDr: 45, cotaNeta: lgCerceveaVert - deducereSudura*2, tip: item.material_name, codBara: `CR-V-${lgCerceveaVert}-4545`, pozitie: `${posNr}.A:Left+Right`, categorie: 'Cercevea' });
     
     if (isPVC) {
-       profiles.push({ reper: 'Armătură Cercevea Orizontală', q: 2, latimeT: 30, lgBrut: lgCerceveaOriz - deducereArmatura, unghiSt: 90, unghiDr: 90, cotaNeta: lgCerceveaOriz - deducereArmatura, tip: 'Metal', codBara: `AC-H-${lgCerceveaOriz-deducereArmatura}-9090` });
-       profiles.push({ reper: 'Armătură Cercevea Verticală', q: 2, latimeT: 30, lgBrut: lgCerceveaVert - deducereArmatura, unghiSt: 90, unghiDr: 90, cotaNeta: lgCerceveaVert - deducereArmatura, tip: 'Metal', codBara: `AC-V-${lgCerceveaVert-deducereArmatura}-9090` });
+       profiles.push({ reper: 'Armătură Cercevea Orizontală', q: 2, latimeT: 30, lgBrut: lgCerceveaOriz - deducereArmatura, unghiSt: 90, unghiDr: 90, cotaNeta: lgCerceveaOriz - deducereArmatura, tip: 'Metal', codBara: `AC-H-${lgCerceveaOriz-deducereArmatura}-9090`, pozitie: `${posNr}.A:Top+Bot`, categorie: 'Armătură' });
+       profiles.push({ reper: 'Armătură Cercevea Verticală', q: 2, latimeT: 30, lgBrut: lgCerceveaVert - deducereArmatura, unghiSt: 90, unghiDr: 90, cotaNeta: lgCerceveaVert - deducereArmatura, tip: 'Metal', codBara: `AC-V-${lgCerceveaVert-deducereArmatura}-9090`, pozitie: `${posNr}.A:Left+Right`, categorie: 'Armătură' });
     }
 
     coteSticla = { 
@@ -83,8 +84,8 @@ const AdvancedBOMEngine = (item, techSettings = DEFAULT_TECH_SETTINGS) => {
   }
 
   // BAGHETE STICLĂ
-  profiles.push({ reper: 'Baghetă Orizontală', q: 2, latimeT: 20, lgBrut: coteSticla.w + 4, unghiSt: 90, unghiDr: 90, cotaNeta: coteSticla.w, tip: 'Baghetă', codBara: `BG-H-${coteSticla.w}-9090` });
-  profiles.push({ reper: 'Baghetă Verticală', q: 2, latimeT: 20, lgBrut: coteSticla.h + 4, unghiSt: 90, unghiDr: 90, cotaNeta: coteSticla.h, tip: 'Baghetă', codBara: `BG-V-${coteSticla.h}-9090` });
+  profiles.push({ reper: 'Baghetă Orizontală', q: 2, latimeT: 20, lgBrut: coteSticla.w + 4, unghiSt: 90, unghiDr: 90, cotaNeta: coteSticla.w, tip: 'Baghetă', codBara: `BG-H-${coteSticla.w}-9090`, pozitie: `${posNr}.A:Top+Bot`, categorie: 'Baghetă' });
+  profiles.push({ reper: 'Baghetă Verticală', q: 2, latimeT: 20, lgBrut: coteSticla.h + 4, unghiSt: 90, unghiDr: 90, cotaNeta: coteSticla.h, tip: 'Baghetă', codBara: `BG-V-${coteSticla.h}-9090`, pozitie: `${posNr}.A:Left+Right`, categorie: 'Baghetă' });
 
   const glassArea = Math.max(0, (coteSticla.w * coteSticla.h) / 1000000);
 
@@ -343,6 +344,31 @@ const TechnicalDrawing = ({ w, h, isFix, isDoor, summary, sashConfigs, productNa
             <text x={drawW - 22} y={14} fill="#94a3b8" fontSize="7" fontFamily="monospace">45°</text>
             <text x={6} y={drawH - 6} fill="#94a3b8" fontSize="7" fontFamily="monospace">45°</text>
             <text x={drawW - 22} y={drawH - 6} fill="#94a3b8" fontSize="7" fontFamily="monospace">45°</text>
+            
+            {/* ═══ LĂȚIMI INDIVIDUALE PER CANAT (RA Workshop style: A=400, B=600) ═══ */}
+            {numSashes > 1 && sashes.map((sash) => {
+              const sashRealW = Math.round((w - 2 * 70) / numSashes); // approx real width per sash
+              const cx = sash.x + sash.w / 2;
+              return (
+                <g key={`dim-${sash.index}`}>
+                  {/* Dimension line per pane */}
+                  <line x1={sash.x} y1={drawH + 8} x2={sash.x + sash.w} y2={drawH + 8} stroke="#475569" strokeWidth="0.8" />
+                  <line x1={sash.x} y1={drawH + 4} x2={sash.x} y2={drawH + 12} stroke="#475569" strokeWidth="0.8" />
+                  <line x1={sash.x + sash.w} y1={drawH + 4} x2={sash.x + sash.w} y2={drawH + 12} stroke="#475569" strokeWidth="0.8" />
+                  <text x={cx} y={drawH + 22} textAnchor="middle" fill="#334155" fontSize="9" fontWeight="700" fontFamily="monospace">{sashRealW}</text>
+                </g>
+              );
+            })}
+            
+            {/* Total width dimension at bottom */}
+            {numSashes > 1 && (
+              <g>
+                <line x1={0} y1={drawH + 30} x2={drawW} y2={drawH + 30} stroke="#1e40af" strokeWidth="1" />
+                <line x1={0} y1={drawH + 26} x2={0} y2={drawH + 34} stroke="#1e40af" strokeWidth="1" />
+                <line x1={drawW} y1={drawH + 26} x2={drawW} y2={drawH + 34} stroke="#1e40af" strokeWidth="1" />
+                <text x={drawW/2} y={drawH + 44} textAnchor="middle" fill="#1e40af" fontSize="10" fontWeight="900" fontFamily="monospace">L={w}</text>
+              </g>
+            )}
          </svg>
       </div>
       
@@ -983,43 +1009,56 @@ export default function FactoryManager() {
 
                  <div className="p-6">
 
-                   {/* TAB 2: Tăieri (CNC Optimization Table) */}
-                   <div className={`animate-in fade-in duration-300 print:mt-12 print:break-before-page ${activeTab === 'taiere' ? 'block' : 'hidden print:block'}`}>
-                       <h3 className="hidden print:flex text-lg font-bold mb-4 items-center gap-2"><Scissors className="w-5 h-5"/> Listă Tăieri Pentru CNC</h3>
-                       <div className="overflow-x-auto">
-                         <table className="w-full text-left text-sm whitespace-nowrap">
-                           <thead>
-                             <tr className="bg-slate-100 text-slate-600">
-                               <th className="px-4 py-3 rounded-tl-lg">Cod CNC (Barcode)</th>
-                               <th className="px-4 py-3">Piesă / Reper</th>
-                               <th className="px-4 py-3 text-center">Cant. / Fereastră</th>
-                               <th className="px-4 py-3 text-right">Cotă Brută (L)</th>
-                               <th className="px-4 py-3 text-center">Tăiere St | Dr</th>
-                               <th className="px-4 py-3 rounded-tr-lg text-right font-bold text-emerald-700">TOTAL BUC (x{activeItem.quantity})</th>
-                             </tr>
-                           </thead>
-                           <tbody className="divide-y divide-slate-100">
-                             {bomData.profiles.map((p, i) => (
-                               <tr key={i} className="hover:bg-slate-50 transition-colors">
-                                 <td className="px-4 py-3 font-mono text-xs text-slate-500">
-                                   <div className="flex items-center gap-2">
-                                     <Barcode className="w-4 h-4 text-slate-300" />
-                                     {p.codBara}
-                                   </div>
-                                 </td>
-                                 <td className="px-4 py-3 font-semibold text-slate-800">{p.reper}</td>
-                                 <td className="px-4 py-3 text-center text-slate-600">{p.q}</td>
-                                 <td className="px-4 py-3 text-right font-bold text-slate-900">{p.lgBrut} mm</td>
-                                 <td className="px-4 py-3 text-center font-mono text-xs text-slate-400 bg-slate-50/50">
-                                   {p.unghiSt}° / \ {p.unghiDr}°
-                                 </td>
-                                 <td className="px-4 py-3 text-right font-black text-emerald-700">{p.q * activeItem.quantity}</td>
-                               </tr>
-                             ))}
-                           </tbody>
-                         </table>
-                       </div>
-                     </div>
+                    {/* TAB 1: Tăieri Profil (RA Workshop Style) */}
+                    <div className={`animate-in fade-in duration-300 print:mt-12 print:break-before-page ${activeTab === 'taiere' ? 'block' : 'hidden print:block'}`}>
+                        <h3 className="hidden print:flex text-lg font-bold mb-4 items-center gap-2"><Scissors className="w-5 h-5"/> Cutting Size — Profile Order</h3>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs whitespace-nowrap">
+                            <thead>
+                              <tr className="bg-slate-800 text-white text-[11px]">
+                                <th className="px-2 py-2.5 rounded-tl-lg text-center w-8">Nr.</th>
+                                <th className="px-2 py-2.5">Cod CNC</th>
+                                <th className="px-2 py-2.5">Piesă / Designație</th>
+                                <th className="px-2 py-2.5 text-center">Poziție</th>
+                                <th className="px-2 py-2.5 text-center">Categorie</th>
+                                <th className="px-2 py-2.5 text-center">Q</th>
+                                <th className="px-2 py-2.5 text-right">Lungime</th>
+                                <th className="px-2 py-2.5 text-right">Cotă Netă</th>
+                                <th className="px-2 py-2.5 text-center bg-slate-700/80 border-l border-slate-600">1°</th>
+                                <th className="px-2 py-2.5 text-center bg-slate-700/80 border-r border-slate-600">2°</th>
+                                <th className="px-2 py-2.5 rounded-tr-lg text-right font-bold text-emerald-300">Total (×{activeItem.quantity})</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {bomData.profiles.map((p, i) => {
+                                const catColors = { 'Ramă (Toc)': 'bg-blue-50 text-blue-700 border-blue-200', 'Cercevea': 'bg-amber-50 text-amber-700 border-amber-200', 'Armătură': 'bg-slate-100 text-slate-600 border-slate-200', 'Baghetă': 'bg-purple-50 text-purple-700 border-purple-200' };
+                                return (
+                                  <tr key={i} className={`hover:bg-blue-50/50 transition-colors ${i % 2 === 0 ? '' : 'bg-slate-50/30'}`}>
+                                    <td className="px-2 py-2 text-center font-bold text-slate-400">{i + 1}</td>
+                                    <td className="px-2 py-2 font-mono text-[10px] text-slate-400"><div className="flex items-center gap-1"><Barcode className="w-3 h-3 text-slate-300" />{p.codBara}</div></td>
+                                    <td className="px-2 py-2 font-semibold text-slate-800 text-[11px]">{p.reper}</td>
+                                    <td className="px-2 py-2 text-center font-mono text-[10px] text-indigo-600 font-bold">{p.pozitie}</td>
+                                    <td className="px-2 py-2 text-center"><span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${catColors[p.categorie] || 'bg-slate-50 text-slate-500 border-slate-200'}`}>{p.categorie}</span></td>
+                                    <td className="px-2 py-2 text-center font-bold text-slate-700">{p.q}</td>
+                                    <td className="px-2 py-2 text-right font-bold text-slate-900">{p.lgBrut} mm</td>
+                                    <td className="px-2 py-2 text-right text-slate-400 font-mono text-[10px]">{p.cotaNeta} mm</td>
+                                    <td className="px-2 py-2 text-center font-mono font-bold bg-slate-50/80 text-slate-600 border-l border-slate-100">{p.unghiSt}°</td>
+                                    <td className="px-2 py-2 text-center font-mono font-bold bg-slate-50/80 text-slate-600 border-r border-slate-100">{p.unghiDr}°</td>
+                                    <td className="px-2 py-2 text-right font-black text-emerald-700 text-sm">{p.q * activeItem.quantity}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                            <tfoot>
+                              <tr className="bg-slate-100 border-t-2 border-slate-300">
+                                <td colSpan={6} className="px-2 py-3 text-right font-bold text-slate-500 text-[11px]">{bomData.profiles.length} tipuri repere</td>
+                                <td colSpan={4} className="px-2 py-3"></td>
+                                <td className="px-2 py-3 text-right font-black text-base text-emerald-800">{bomData.profiles.reduce((s,p) => s + p.q * activeItem.quantity, 0)} buc</td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
+                      </div>
 
                    {/* TAB 2.5: Optimizare Liniară Bare */}
                    <div className={`animate-in fade-in duration-300 print:break-before-page ${activeTab === 'optimizare' ? 'block' : 'hidden print:block'}`}>
