@@ -132,10 +132,6 @@ function ProductionFlow({ orderId, orderNumber }) {
           </p>
         </div>
 
-                    {/* TAB 7: Analiză Cost */}
-                    <div className={`animate-in fade-in duration-300 ${activeTab === 'costuri' ? 'block' : 'hidden'}`}>
-                      <CostAnalysis bomData={bomData} activeItem={activeItem} techSettings={techSettings} />
-                    </div>
         <div className="text-right">
           <p className="text-2xl font-black text-slate-800">{progress}%</p>
           <p className="text-[10px] text-slate-400 uppercase">Progres</p>
@@ -1623,6 +1619,11 @@ export default function FactoryManager() {
                     {/* TAB 6: Flow Producție */}
                     <div className={`animate-in fade-in duration-300 ${activeTab === 'flow' ? 'block' : 'hidden'}`}>
                       <ProductionFlow orderId={selectedOrder?.id || 'unknown'} orderNumber={selectedOrder?.order_number || ''} />
+                    </div>
+
+                    {/* TAB 7: Analiză Cost */}
+                    <div className={`animate-in fade-in duration-300 ${activeTab === 'costuri' ? 'block' : 'hidden'}`}>
+                      <CostAnalysis bomData={bomData} activeItem={activeItem} techSettings={techSettings} />
                     </div>
                   </div>
                </div>
