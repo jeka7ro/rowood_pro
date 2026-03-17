@@ -28,6 +28,249 @@ const DEFAULT_TECH_SETTINGS = {
   deducereFalt: 12     // mm adâncime bătaie falț per profil
 };
 
+// ═══ PRODUCTION FLOW SYSTEM ═══
+// 8 Etape Standard de Producție (RA Workshop + Fenestra + Klaes)
+const PRODUCTION_STAGES = [
+  { id: 'debitare', name: 'Debitare', icon: '✂️', desc: 'Tăiere profile la cotă (CNC)', color: 'emerald', dept: 'CNC' },
+  { id: 'armare', name: 'Armare', icon: '🔩', desc: 'Inserare armătură metalică', color: 'slate', dept: 'Armare' },
+  { id: 'sudare', name: 'Sudare', icon: '🔥', desc: 'Sudare colțuri cadru + cercevea', color: 'orange', dept: 'Sudare' },
+  { id: 'curatare', name: 'Curățare', icon: '🧹', desc: 'Curățare suduri + colțuri', color: 'cyan', dept: 'Curățare' },
+  { id: 'feronerie', name: 'Montaj Feronerie', icon: '🔧', desc: 'Balamale, mânere, încuietori', color: 'amber', dept: 'Feronerie' },
+  { id: 'geam', name: 'Geam', icon: '🪟', desc: 'Inserare pachet sticlă + baghete', color: 'sky', dept: 'Geam' },
+  { id: 'qc', name: 'Control Calitate', icon: '✅', desc: 'Verificare funcționalitate + aspect', color: 'purple', dept: 'QC' },
+  { id: 'expediere', name: 'Expediere', icon: '📦', desc: 'Ambalare + încărcare + livrare', color: 'blue', dept: 'Expediere' }
+];
+
+// Helper: Get/Set production flow data from localStorage
+const getFlowData = (orderId) => {
+  try {
+    const data = localStorage.getItem(`rowood_flow_${orderId}`);
+    return data ? JSON.parse(data) : {};
+  } catch { return {}; }
+};
+const setFlowData = (orderId, data) => {
+  localStorage.setItem(`rowood_flow_${orderId}`, JSON.stringify(data));
+};
+
+// Production Flow Component
+function ProductionFlow({ orderId, orderNumber }) {
+  const [flowData, setFlowState] = React.useState(() => getFlowData(orderId));
+  const [expandedStage, setExpandedStage] = React.useState(null);
+  const [noteText, setNoteText] = React.useState('');
+
+  const persist = (newData) => { setFlowState(newData); setFlowData(orderId, newData); };
+
+  const currentUser = 'Admin'; // TODO: Replace with Auth.me()
+
+  const handlePreia = (stageId) => {
+    const now = new Date().toISOString();
+    const updated = { ...flowData, [stageId]: { ...flowData[stageId], status: 'in_lucru', preluat_de: currentUser, preluat_la: now } };
+    persist(updated);
+  };
+
+  const handlePreda = (stageId) => {
+    const now = new Date().toISOString();
+    const stg = flowData[stageId] || {};
+    const updated = { ...flowData, [stageId]: { ...stg, status: 'finalizat', predat_de: currentUser, predat_la: now, note: noteText || stg.note } };
+    persist(updated);
+    setNoteText('');
+    setExpandedStage(null);
+  };
+
+  const handleReject = (stageId) => {
+    const now = new Date().toISOString();
+    const stg = flowData[stageId] || {};
+    const updated = { ...flowData, [stageId]: { ...stg, status: 'respins', predat_de: currentUser, predat_la: now, note: noteText || 'Respins - necesită reluare' } };
+    persist(updated);
+    setNoteText('');
+  };
+
+  // Find current active stage
+  const getActiveStageIndex = () => {
+    for (let i = 0; i < PRODUCTION_STAGES.length; i++) {
+      const stg = flowData[PRODUCTION_STAGES[i].id];
+      if (!stg || stg.status !== 'finalizat') return i;
+    }
+    return PRODUCTION_STAGES.length; // All done
+  };
+  const activeIdx = getActiveStageIndex();
+  const completedCount = PRODUCTION_STAGES.filter(s => flowData[s.id]?.status === 'finalizat').length;
+  const progress = Math.round((completedCount / PRODUCTION_STAGES.length) * 100);
+
+  const formatDT = (iso) => {
+    if (!iso) return '—';
+    try { return format(new Date(iso), 'dd.MM.yyyy HH:mm', { locale: ro }); } catch { return iso; }
+  };
+  const calcDuration = (start, end) => {
+    if (!start || !end) return null;
+    const ms = new Date(end) - new Date(start);
+    const mins = Math.floor(ms / 60000);
+    if (mins < 60) return `${mins} min`;
+    const hrs = Math.floor(mins / 60);
+    const rm = mins % 60;
+    return `${hrs}h ${rm}m`;
+  };
+
+  const statusColors = {
+    'finalizat': 'bg-emerald-500',
+    'in_lucru': 'bg-blue-500 animate-pulse',
+    'respins': 'bg-red-500',
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Progress Header */}
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+            <Factory className="w-5 h-5 text-blue-600" /> Flow Producție
+          </h3>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {completedCount === PRODUCTION_STAGES.length
+              ? '✅ Toate etapele finalizate — gata de livrare!'
+              : `Etapa ${activeIdx + 1}/${PRODUCTION_STAGES.length} — ${PRODUCTION_STAGES[activeIdx]?.name || 'Finalizat'}`}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-2xl font-black text-slate-800">{progress}%</p>
+          <p className="text-[10px] text-slate-400 uppercase">Progres</p>
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+        <div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all duration-500 rounded-full" style={{ width: `${progress}%` }} />
+      </div>
+
+      {/* Timeline */}
+      <div className="relative">
+        {PRODUCTION_STAGES.map((stage, idx) => {
+          const stg = flowData[stage.id] || {};
+          const isCurrent = idx === activeIdx;
+          const isDone = stg.status === 'finalizat';
+          const isRejected = stg.status === 'respins';
+          const isWorking = stg.status === 'in_lucru';
+          const isFuture = idx > activeIdx && !isDone;
+          const isExpanded = expandedStage === stage.id;
+          const duration = calcDuration(stg.preluat_la, stg.predat_la);
+
+          return (
+            <div key={stage.id} className="relative flex gap-4 pb-1">
+              {/* Vertical line */}
+              {idx < PRODUCTION_STAGES.length - 1 && (
+                <div className={`absolute left-[15px] top-[32px] w-0.5 h-[calc(100%-24px)] ${isDone ? 'bg-emerald-300' : 'bg-slate-200'}`} />
+              )}
+
+              {/* Circle */}
+              <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0 mt-1
+                ${isDone ? 'bg-emerald-100 text-emerald-700 ring-2 ring-emerald-300' : ''}
+                ${isWorking ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-400 animate-pulse' : ''}
+                ${isRejected ? 'bg-red-100 text-red-700 ring-2 ring-red-300' : ''}
+                ${isCurrent && !isWorking && !isRejected ? 'bg-amber-100 text-amber-700 ring-2 ring-amber-300' : ''}
+                ${isFuture ? 'bg-slate-100 text-slate-400' : ''}
+              `}>
+                {isDone ? '✓' : stage.icon}
+              </div>
+
+              {/* Content */}
+              <div className={`flex-1 pb-4 ${isFuture ? 'opacity-50' : ''}`}>
+                <div
+                  className={`rounded-xl border p-3 cursor-pointer transition-all
+                    ${isDone ? 'bg-emerald-50/50 border-emerald-200 hover:bg-emerald-50' : ''}
+                    ${isWorking ? 'bg-blue-50/50 border-blue-200 hover:bg-blue-50 shadow-sm' : ''}
+                    ${isRejected ? 'bg-red-50/50 border-red-200 hover:bg-red-50' : ''}
+                    ${isCurrent && !isWorking && !isRejected ? 'bg-amber-50/50 border-amber-200 hover:bg-amber-50 shadow-sm' : ''}
+                    ${isFuture ? 'bg-slate-50 border-slate-100' : ''}
+                  `}
+                  onClick={() => setExpandedStage(isExpanded ? null : stage.id)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-sm text-slate-800 flex items-center gap-2">
+                        {stage.name}
+                        <span className="text-[10px] font-normal text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{stage.dept}</span>
+                      </p>
+                      <p className="text-xs text-slate-500 mt-0.5">{stage.desc}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {duration && <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-2 py-0.5 rounded">{duration}</span>}
+                      {stg.status && <span className={`w-2.5 h-2.5 rounded-full ${statusColors[stg.status] || 'bg-slate-300'}`} />}
+                    </div>
+                  </div>
+
+                  {/* Expanded details */}
+                  {isExpanded && (
+                    <div className="mt-3 pt-3 border-t border-slate-200/60 space-y-2">
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div className="bg-white rounded-lg p-2.5 border border-slate-100">
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">Preluat de</p>
+                          <p className="font-bold text-slate-800 mt-0.5">{stg.preluat_de || '—'}</p>
+                          <p className="text-slate-400 font-mono text-[10px]">{formatDT(stg.preluat_la)}</p>
+                        </div>
+                        <div className="bg-white rounded-lg p-2.5 border border-slate-100">
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">Predat de</p>
+                          <p className="font-bold text-slate-800 mt-0.5">{stg.predat_de || '—'}</p>
+                          <p className="text-slate-400 font-mono text-[10px]">{formatDT(stg.predat_la)}</p>
+                        </div>
+                      </div>
+                      {stg.note && (
+                        <div className="bg-amber-50 rounded-lg p-2 text-xs text-amber-800 border border-amber-200">
+                          <strong>Notă:</strong> {stg.note}
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      {(isCurrent || isRejected) && !isDone && (
+                        <div className="space-y-2 pt-1">
+                          {!isWorking && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handlePreia(stage.id); }}
+                              className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
+                            >
+                              <Hammer className="w-4 h-4" /> PREIA COMANDA — {stage.name}
+                            </button>
+                          )}
+                          {isWorking && (
+                            <>
+                              <input
+                                type="text"
+                                placeholder="Observații la predare (opțional)..."
+                                value={noteText}
+                                onChange={(e) => setNoteText(e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handlePreda(stage.id); }}
+                                  className="flex-1 py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
+                                >
+                                  ✓ FINALIZEAZĂ & PREDĂ
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleReject(stage.id); }}
+                                  className="py-2 px-4 bg-red-100 hover:bg-red-200 text-red-700 text-sm font-bold rounded-lg transition-colors"
+                                >
+                                  ✗ Respinge
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
 // --- ENGINE PRODUCȚIE AVANSAT (Tip RA Workshop) ---
 const AdvancedBOMEngine = (item, techSettings = DEFAULT_TECH_SETTINGS) => {
   const w = parseFloat(item.width) || 0;
@@ -1005,6 +1248,9 @@ export default function FactoryManager() {
                     <button onClick={() => setActiveTab('etichete')} className={`px-6 py-4 text-sm font-bold border-b-2 whitespace-nowrap flex items-center gap-2 transition-colors ${activeTab === 'etichete' ? 'border-purple-600 text-purple-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>
                       <Barcode className="w-4 h-4"/> Etichete
                     </button>
+                    <button onClick={() => setActiveTab('flow')} className={`px-6 py-4 text-sm font-bold border-b-2 whitespace-nowrap flex items-center gap-2 transition-colors ${activeTab === 'flow' ? 'border-rose-600 text-rose-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>
+                      <Factory className="w-4 h-4"/> Flow Producție
+                    </button>
                  </div>
 
                  <div className="p-6">
@@ -1201,6 +1447,11 @@ export default function FactoryManager() {
                           ))}
                        </div>
                      </div>
+
+                    {/* TAB 6: Flow Producție */}
+                    <div className={`animate-in fade-in duration-300 ${activeTab === 'flow' ? 'block' : 'hidden'}`}>
+                      <ProductionFlow orderId={selectedOrder?.id || 'unknown'} orderNumber={selectedOrder?.order_number || ''} />
+                    </div>
                   </div>
                </div>
 
