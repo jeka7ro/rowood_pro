@@ -131,6 +131,11 @@ function ProductionFlow({ orderId, orderNumber }) {
               : `Etapa ${activeIdx + 1}/${PRODUCTION_STAGES.length} — ${PRODUCTION_STAGES[activeIdx]?.name || 'Finalizat'}`}
           </p>
         </div>
+
+                    {/* TAB 7: Analiză Cost */}
+                    <div className={`animate-in fade-in duration-300 ${activeTab === 'costuri' ? 'block' : 'hidden'}`}>
+                      <CostAnalysis bomData={bomData} activeItem={activeItem} techSettings={techSettings} />
+                    </div>
         <div className="text-right">
           <p className="text-2xl font-black text-slate-800">{progress}%</p>
           <p className="text-[10px] text-slate-400 uppercase">Progres</p>
@@ -265,6 +270,169 @@ function ProductionFlow({ orderId, orderNumber }) {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+
+// ═══ COST ANALYSIS ENGINE ═══
+// Prețuri configurabile per element (EUR/unitate)
+const DEFAULT_COST_RATES = {
+  profil_rama_per_ml: 8.50,       // €/m profil PVC ramă
+  profil_cercevea_per_ml: 7.20,   // €/m profil PVC cercevea
+  armatura_per_ml: 3.50,          // €/m armătură oțel
+  bagheta_per_ml: 1.80,           // €/m baghetă sticlă
+  garnitura_per_ml: 0.90,         // €/m garnitură EPDM
+  sticla_per_mp: 42.00,           // €/m² pachet termopan
+  feronerie_fix: 0,               // €/buc feronerie fix (fără)
+  feronerie_ob: 65.00,            // €/buc feronerie oscilo-batant
+  feronerie_batant: 45.00,        // €/buc feronerie batant simplu
+  manopera_per_mp: 18.00,         // €/m² manoperă producție
+  maner_per_buc: 8.50,            // €/buc mâner
+  balamale_per_canat: 12.00,      // €/canat balamale
+};
+
+function CostAnalysis({ bomData, activeItem, techSettings }) {
+  const [costRates, setCostRates] = React.useState(() => {
+    try {
+      const saved = localStorage.getItem('rowood_cost_rates');
+      return saved ? { ...DEFAULT_COST_RATES, ...JSON.parse(saved) } : DEFAULT_COST_RATES;
+    } catch { return DEFAULT_COST_RATES; }
+  });
+  const [showEditor, setShowEditor] = React.useState(false);
+
+  const saveCostRates = (newRates) => {
+    setCostRates(newRates);
+    localStorage.setItem('rowood_cost_rates', JSON.stringify(newRates));
+  };
+
+  // Calculate costs
+  const w = parseFloat(activeItem.width) || 0;
+  const h = parseFloat(activeItem.height) || 0;
+  const isFix = activeItem.product_name?.toLowerCase().includes('fix');
+  const numSashes = (activeItem.sash_configs?.length) || (isFix ? 0 : 2);
+  const perimeter = 2 * (w + h) / 1000; // meters
+  const area = (w * h) / 1000000; // m²
+
+  // Profile lengths from BOM
+  const ramaProfiles = bomData.profiles.filter(p => p.categorie === 'Ramă (Toc)');
+  const cerceveaProfiles = bomData.profiles.filter(p => p.categorie === 'Cercevea');
+  const armaturaProfiles = bomData.profiles.filter(p => p.categorie === 'Armătură');
+  const baghetaProfiles = bomData.profiles.filter(p => p.categorie === 'Baghetă');
+
+  const totalMl = (profiles) => profiles.reduce((s, p) => s + (p.lgBrut * p.q / 1000), 0);
+
+  const mlRama = totalMl(ramaProfiles);
+  const mlCercevea = totalMl(cerceveaProfiles);
+  const mlArmatura = totalMl(armaturaProfiles);
+  const mlBagheta = totalMl(baghetaProfiles);
+  const mlGarnitura = perimeter * 2; // interior + exterior
+  const mpSticla = bomData.glass?.area || area * 0.7;
+
+  const costItems = [
+    { name: 'Profil Ramă (Toc)', cat: 'Profil', qty: mlRama, unit: 'ml', rate: costRates.profil_rama_per_ml, icon: '🪵' },
+    { name: 'Profil Cercevea', cat: 'Profil', qty: mlCercevea, unit: 'ml', rate: costRates.profil_cercevea_per_ml, icon: '🪟' },
+    { name: 'Armătură Oțel', cat: 'Armătură', qty: mlArmatura, unit: 'ml', rate: costRates.armatura_per_ml, icon: '🔩' },
+    { name: 'Baghetă Sticlă', cat: 'Consum', qty: mlBagheta, unit: 'ml', rate: costRates.bagheta_per_ml, icon: '📏' },
+    { name: 'Garnitură EPDM', cat: 'Consum', qty: mlGarnitura, unit: 'ml', rate: costRates.garnitura_per_ml, icon: '〰️' },
+    { name: 'Pachet Termopan', cat: 'Sticlă', qty: mpSticla, unit: 'm²', rate: costRates.sticla_per_mp, icon: '🧊' },
+    { name: 'Feronerie / Canat', cat: 'Feronerie', qty: numSashes, unit: 'buc', rate: isFix ? costRates.feronerie_fix : costRates.feronerie_ob, icon: '🔧' },
+    { name: 'Mâner', cat: 'Feronerie', qty: isFix ? 0 : numSashes, unit: 'buc', rate: costRates.maner_per_buc, icon: '🚪' },
+    { name: 'Balamale', cat: 'Feronerie', qty: isFix ? 0 : numSashes, unit: 'canat', rate: costRates.balamale_per_canat, icon: '🔗' },
+    { name: 'Manoperă Producție', cat: 'Manoperă', qty: area, unit: 'm²', rate: costRates.manopera_per_mp, icon: '👷' },
+  ];
+
+  const validItems = costItems.filter(c => c.qty > 0);
+  const costPerUnit = validItems.reduce((s, c) => s + c.qty * c.rate, 0);
+  const costTotal = costPerUnit * activeItem.quantity;
+  const sellPrice = activeItem.price || 0;
+  const margin = sellPrice > 0 ? ((sellPrice - costPerUnit) / sellPrice * 100) : 0;
+
+  const catColors = {
+    'Profil': 'text-blue-600',
+    'Armătură': 'text-slate-600',
+    'Consum': 'text-purple-600',
+    'Sticlă': 'text-cyan-600',
+    'Feronerie': 'text-amber-600',
+    'Manoperă': 'text-emerald-600',
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+            💰 Analiză Cost Producție
+          </h3>
+          <p className="text-xs text-slate-500">Breakdown cost pe fiecare componentă minimă</p>
+        </div>
+        <button onClick={() => setShowEditor(!showEditor)} className="text-xs text-slate-500 hover:text-blue-600 flex items-center gap-1 bg-slate-100 px-2 py-1 rounded">
+          <Settings className="w-3 h-3" /> Editează Prețuri
+        </button>
+      </div>
+
+      {/* Cost Rates Editor */}
+      {showEditor && (
+        <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 grid grid-cols-2 md:grid-cols-3 gap-3">
+          {Object.entries(costRates).map(([key, val]) => (
+            <div key={key} className="flex flex-col gap-0.5">
+              <label className="text-[10px] text-slate-400 uppercase">{key.replace(/_/g, ' ')}</label>
+              <input type="number" value={val} step="0.1" onChange={(e) => saveCostRates({ ...costRates, [key]: parseFloat(e.target.value) || 0 })} className="px-2 py-1.5 border border-slate-200 rounded text-xs font-mono" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+          <p className="text-[10px] text-blue-500 uppercase font-bold">Cost / Unitate</p>
+          <p className="text-2xl font-black text-blue-800 mt-1">{costPerUnit.toFixed(2)} <span className="text-sm font-normal">€</span></p>
+        </div>
+        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-4 border border-emerald-200">
+          <p className="text-[10px] text-emerald-500 uppercase font-bold">Cost Total (×{activeItem.quantity})</p>
+          <p className="text-2xl font-black text-emerald-800 mt-1">{costTotal.toFixed(2)} <span className="text-sm font-normal">€</span></p>
+        </div>
+        <div className={`rounded-xl p-4 border ${margin >= 20 ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-200' : margin >= 0 ? 'bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200' : 'bg-gradient-to-br from-red-50 to-red-100 border-red-200'}`}>
+          <p className="text-[10px] uppercase font-bold text-slate-500">Marjă Profit</p>
+          <p className={`text-2xl font-black mt-1 ${margin >= 20 ? 'text-green-800' : margin >= 0 ? 'text-amber-800' : 'text-red-800'}`}>
+            {sellPrice > 0 ? `${margin.toFixed(1)}%` : '—'}
+          </p>
+          {sellPrice > 0 && <p className="text-[10px] text-slate-400">Vânzare: {sellPrice.toFixed(2)} €</p>}
+        </div>
+      </div>
+
+      {/* Detailed Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="bg-slate-800 text-white">
+              <th className="px-3 py-2.5 rounded-tl-lg text-left">Componentă</th>
+              <th className="px-3 py-2.5 text-center">Categorie</th>
+              <th className="px-3 py-2.5 text-right">Cantitate</th>
+              <th className="px-3 py-2.5 text-right">Preț Unitar</th>
+              <th className="px-3 py-2.5 rounded-tr-lg text-right font-bold text-emerald-300">Cost Total</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {validItems.map((item, i) => (
+              <tr key={i} className={`hover:bg-blue-50/30 ${i % 2 === 0 ? '' : 'bg-slate-50/30'}`}>
+                <td className="px-3 py-2 font-semibold text-slate-800">{item.icon} {item.name}</td>
+                <td className={`px-3 py-2 text-center font-bold text-[10px] ${catColors[item.cat] || ''}`}>{item.cat}</td>
+                <td className="px-3 py-2 text-right font-mono">{item.qty.toFixed(2)} {item.unit}</td>
+                <td className="px-3 py-2 text-right font-mono text-slate-500">{item.rate.toFixed(2)} €/{item.unit}</td>
+                <td className="px-3 py-2 text-right font-black text-emerald-700">{(item.qty * item.rate).toFixed(2)} €</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="bg-slate-100 border-t-2 border-slate-300">
+              <td colSpan={4} className="px-3 py-3 text-right font-bold text-slate-600">COST TOTAL / UNITATE</td>
+              <td className="px-3 py-3 text-right font-black text-lg text-emerald-800">{costPerUnit.toFixed(2)} €</td>
+            </tr>
+          </tfoot>
+        </table>
       </div>
     </div>
   );
@@ -1251,7 +1419,11 @@ export default function FactoryManager() {
                     <button onClick={() => setActiveTab('flow')} className={`px-6 py-4 text-sm font-bold border-b-2 whitespace-nowrap flex items-center gap-2 transition-colors ${activeTab === 'flow' ? 'border-rose-600 text-rose-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>
                       <Factory className="w-4 h-4"/> Flow Producție
                     </button>
-                 </div>
+                 
+                    <button onClick={() => setActiveTab('costuri')} className={`px-6 py-4 text-sm font-bold border-b-2 whitespace-nowrap flex items-center gap-2 transition-colors ${activeTab === 'costuri' ? 'border-green-600 text-green-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>
+                      💰 Analiză Cost
+                    </button>
+</div>
 
                  <div className="p-6">
 

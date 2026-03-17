@@ -153,6 +153,7 @@ function LayoutContent({ children, currentPageName }) {
       { title: "Manager Fabrică", url: createPageUrl("FactoryManager"), icon: Factory },
       { title: "Comenzi", url: createPageUrl("OrderManager"), icon: ShoppingCart },
       { title: "Feronerie & Culori", url: createPageUrl("HardwareManager"), icon: Palette },
+      { title: "Gestiune Stocuri", url: createPageUrl("InventoryManager"), icon: Package },
       { title: "CRM", url: "", icon: Users2, isSection: true },
       { title: t('leadManager.title'), url: createPageUrl("LeadManager"), icon: Target },
       { title: t('dealManager.title'), url: createPageUrl("DealManager"), icon: Briefcase },
