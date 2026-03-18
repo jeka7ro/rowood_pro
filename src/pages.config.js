@@ -42,6 +42,8 @@ import Login from './pages/Login';
 import FactoryManager from './pages/FactoryManager';
 import HardwareManager from './pages/HardwareManager';
 import InventoryManager from './pages/InventoryManager';
+import CostAnalysisPage from './pages/CostAnalysisPage';
+import PricingCenter from './pages/PricingCenter';
 import __Layout from './Layout.jsx';
 
 
@@ -90,6 +92,8 @@ export const PAGES = {
     "FactoryManager": FactoryManager,
     "HardwareManager": HardwareManager,
     "InventoryManager": InventoryManager,
+    "CostAnalysisPage": CostAnalysisPage,
+    "PricingCenter": PricingCenter,
 }
 
 export const pagesConfig = {

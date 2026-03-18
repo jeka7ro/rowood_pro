@@ -103,7 +103,7 @@ function ProductionFlow({ orderId, orderNumber }) {
   };
   const calcDuration = (start, end) => {
     if (!start || !end) return null;
-    const ms = new Date(end) - new Date(start);
+    const ms = new Date(end).getTime() - new Date(start).getTime();
     const mins = Math.floor(ms / 60000);
     if (mins < 60) return `${mins} min`;
     const hrs = Math.floor(mins / 60);
@@ -275,83 +275,240 @@ function ProductionFlow({ orderId, orderNumber }) {
 // ═══ COST ANALYSIS ENGINE ═══
 // Prețuri configurabile per element (EUR/unitate)
 const DEFAULT_COST_RATES = {
-  profil_rama_per_ml: 8.50,       // €/m profil PVC ramă
-  profil_cercevea_per_ml: 7.20,   // €/m profil PVC cercevea
-  armatura_per_ml: 3.50,          // €/m armătură oțel
-  bagheta_per_ml: 1.80,           // €/m baghetă sticlă
-  garnitura_per_ml: 0.90,         // €/m garnitură EPDM
-  sticla_per_mp: 42.00,           // €/m² pachet termopan
-  feronerie_fix: 0,               // €/buc feronerie fix (fără)
-  feronerie_ob: 65.00,            // €/buc feronerie oscilo-batant
-  feronerie_batant: 45.00,        // €/buc feronerie batant simplu
-  manopera_per_mp: 18.00,         // €/m² manoperă producție
-  maner_per_buc: 8.50,            // €/buc mâner
-  balamale_per_canat: 12.00,      // €/canat balamale
+  profil_rama_per_ml: 8.50,
+  profil_cercevea_per_ml: 7.20,
+  armatura_per_ml: 3.50,
+  bagheta_per_ml: 1.80,
+  garnitura_per_ml: 0.90,
+  sticla_per_mp: 42.00,
+  feronerie_fix: 0,
+  feronerie_ob: 65.00,
+  feronerie_batant: 45.00,
+  manopera_per_mp: 18.00,
+  maner_per_buc: 8.50,
+  balamale_per_canat: 12.00,
 };
 
+// Extra Costs — pierderi, profit, TVA
+const DEFAULT_EXTRA_COSTS = {
+  waste_percent: 5,
+  profit_percent: 25,
+  manopera_per_mp: 18,
+  tva_percent: 21,
+};
+const EXTRA_COSTS_KEY = 'rowood_extra_costs';
+
 function CostAnalysis({ bomData, activeItem, techSettings }) {
+  // Cost rates (BOM-level fallback)
   const [costRates, setCostRates] = React.useState(() => {
     try {
       const saved = localStorage.getItem('rowood_cost_rates');
       return saved ? { ...DEFAULT_COST_RATES, ...JSON.parse(saved) } : DEFAULT_COST_RATES;
     } catch { return DEFAULT_COST_RATES; }
   });
+  // Extra costs (waste, profit, TVA)
+  const [extraCosts, setExtraCosts] = React.useState(() => {
+    try {
+      const saved = localStorage.getItem(EXTRA_COSTS_KEY);
+      return saved ? { ...DEFAULT_EXTRA_COSTS, ...JSON.parse(saved) } : DEFAULT_EXTRA_COSTS;
+    } catch { return DEFAULT_EXTRA_COSTS; }
+  });
   const [showEditor, setShowEditor] = React.useState(false);
+  const [showExtraCosts, setShowExtraCosts] = React.useState(false);
+
+  // Fetch ALL real entities for pricing
+  const [realProfile, setRealProfile] = React.useState(null);
+  const [realGlazing, setRealGlazing] = React.useState(null);
+  const [realColor, setRealColor] = React.useState(null);
+  const [realMaterial, setRealMaterial] = React.useState(null);
+  const [realMechanisms, setRealMechanisms] = React.useState([]);
+  const [realProduct, setRealProduct] = React.useState(null);
+
+  React.useEffect(() => {
+    const fetchEntities = async () => {
+      try {
+        const [profiles, glazings, colors, materials, mechanisms, products] = await Promise.all([
+          base44.entities.Profile.filter({ is_active: true }),
+          base44.entities.GlazingType.filter({ is_active: true }),
+          base44.entities.Color.filter({ is_active: true }),
+          base44.entities.Material.filter({ is_active: true }),
+          base44.entities.MechanismType.filter({ is_active: true }),
+          base44.entities.Product.filter({ is_active: true }),
+        ]);
+        // Match by name from the order item
+        if (activeItem.profile_name) setRealProfile(profiles.find(p => p.name === activeItem.profile_name) || null);
+        if (activeItem.glazing_name) setRealGlazing(glazings.find(g => g.name === activeItem.glazing_name) || null);
+        if (activeItem.color_name) setRealColor(colors.find(c => c.name === activeItem.color_name) || null);
+        if (activeItem.material_name) setRealMaterial(materials.find(m => m.name === activeItem.material_name) || null);
+        if (activeItem.product_name) setRealProduct(products.find(p => p.name === activeItem.product_name) || null);
+        setRealMechanisms(mechanisms);
+      } catch (err) { console.warn('CostAnalysis: nu am putut încărca entitățile', err); }
+    };
+    fetchEntities();
+  }, [activeItem.profile_name, activeItem.glazing_name, activeItem.color_name, activeItem.material_name, activeItem.product_name]);
 
   const saveCostRates = (newRates) => {
     setCostRates(newRates);
     localStorage.setItem('rowood_cost_rates', JSON.stringify(newRates));
   };
+  const saveExtraCosts = (newEC) => {
+    setExtraCosts(newEC);
+    localStorage.setItem(EXTRA_COSTS_KEY, JSON.stringify(newEC));
+  };
 
-  // Calculate costs
+  // ═══ CALCULATE COSTS ═══
   const w = parseFloat(activeItem.width) || 0;
   const h = parseFloat(activeItem.height) || 0;
   const isFix = activeItem.product_name?.toLowerCase().includes('fix');
   const numSashes = (activeItem.sash_configs?.length) || (isFix ? 0 : 2);
-  const perimeter = 2 * (w + h) / 1000; // meters
-  const area = (w * h) / 1000000; // m²
+  const perimeter = 2 * (w + h) / 1000;
+  const area = (w * h) / 1000000;
 
-  // Profile lengths from BOM
+  // BOM profile lengths
   const ramaProfiles = bomData.profiles.filter(p => p.categorie === 'Ramă (Toc)');
   const cerceveaProfiles = bomData.profiles.filter(p => p.categorie === 'Cercevea');
   const armaturaProfiles = bomData.profiles.filter(p => p.categorie === 'Armătură');
   const baghetaProfiles = bomData.profiles.filter(p => p.categorie === 'Baghetă');
 
   const totalMl = (profiles) => profiles.reduce((s, p) => s + (p.lgBrut * p.q / 1000), 0);
-
   const mlRama = totalMl(ramaProfiles);
   const mlCercevea = totalMl(cerceveaProfiles);
   const mlArmatura = totalMl(armaturaProfiles);
   const mlBagheta = totalMl(baghetaProfiles);
-  const mlGarnitura = perimeter * 2; // interior + exterior
+  const mlGarnitura = perimeter * 2;
   const mpSticla = bomData.glass?.area || area * 0.7;
 
+  // ═══ REAL PRICES FROM ALL ENTITIES ═══
+  // 1. PROFIL — price_per_linear_meter din Profile entity
+  const dbProfilRate = realProfile ? Number(realProfile.price_per_linear_meter) : 0;
+  const rateProfilRama = dbProfilRate > 0 ? dbProfilRate : costRates.profil_rama_per_ml;
+  const rateProfilCercevea = dbProfilRate > 0 ? dbProfilRate * 0.85 : costRates.profil_cercevea_per_ml;
+
+  // 2. STICLĂ — price_per_sqm din GlazingType entity
+  //    SAU glass_price_per_sqm din Profile.product_specific_pricing (prioritar dacă specificat)
+  const productPricing = realProfile?.product_specific_pricing?.find(p => p.product_id === realProduct?.id);
+  const dbGlassFromProfile = productPricing ? Number(productPricing.glass_price_per_sqm) : 0;
+  const dbGlassFromGlazing = realGlazing ? Number(realGlazing.price_per_sqm) : 0;
+  const rateSticla = dbGlassFromProfile > 0 ? dbGlassFromProfile : (dbGlassFromGlazing > 0 ? dbGlassFromGlazing : costRates.sticla_per_mp);
+  const sticlaSource = dbGlassFromProfile > 0 ? '📊 Profil' : (dbGlassFromGlazing > 0 ? '📊 Sticlă' : '⚙️ Manual');
+
+  // 3. FERONERIE — hardware_fixed_price din Profile.product_specific_pricing
+  const dbHardwareFixed = productPricing ? Number(productPricing.hardware_fixed_price) : 0;
+  const rateFeronerie = dbHardwareFixed > 0 ? dbHardwareFixed : (isFix ? costRates.feronerie_fix : costRates.feronerie_ob);
+
+  // 4. MECANISME — din Profile.mechanism_height_pricing sau MechanismType entity
+  const mechCostItems = [];
+  if (!isFix && numSashes > 0) {
+    const sashMechNames = activeItem.sash_configs?.map(sc => sc.mechanism_name) || [];
+    for (let i = 0; i < numSashes; i++) {
+      const mechName = sashMechNames[i];
+      const mech = mechName ? realMechanisms.find(m => m.name === mechName || m.code === mechName) : null;
+      if (!mech) continue;
+
+      let mechPrice = 0;
+      let mechSource = '⚙️ Manual';
+
+      // Priority 1: mechanism_height_pricing from Profile entity
+      const mechHeightPricing = productPricing?.mechanism_height_pricing?.[mech.code];
+      if (mechHeightPricing?.length > 0) {
+        const matchingRange = mechHeightPricing
+          .sort((a, b) => a.max_height - b.max_height)
+          .find(range => h >= (range.min_height || 0) && h <= range.max_height);
+        if (matchingRange?.price_per_piece > 0) {
+          mechPrice = matchingRange.price_per_piece;
+          mechSource = '📊 Profil';
+        }
+      }
+      // Priority 2: height_price_grid from MechanismType entity
+      if (mechPrice === 0 && mech.height_price_grid?.length > 0) {
+        const gridItem = mech.height_price_grid.find(g => h <= g.max_height);
+        if (gridItem?.price > 0) {
+          mechPrice = gridItem.price;
+          mechSource = '📊 Mecanism';
+        }
+      }
+      // Priority 3: price_per_piece from MechanismType entity
+      if (mechPrice === 0 && mech.price_per_piece > 0) {
+        mechPrice = mech.price_per_piece;
+        mechSource = '📊 Mecanism';
+      }
+
+      if (mechPrice > 0) {
+        mechCostItems.push({
+          name: `Mecanism C${i + 1}: ${mech.name}`,
+          cat: 'Feronerie', qty: 1, unit: 'buc',
+          rate: mechPrice, icon: '⚙️', source: mechSource
+        });
+      }
+    }
+  }
+
+  // 5. CULOARE — price_adjustment + price_per_sqm din Color entity
+  const colorCostItems = [];
+  if (realColor) {
+    const colorAdj = Number(realColor.price_adjustment) || 0;
+    const colorPerSqm = Number(realColor.price_per_sqm) || 0;
+    if (colorAdj > 0) {
+      colorCostItems.push({ name: `Culoare: ${realColor.name}`, cat: 'Culoare', qty: 1, unit: 'fix', rate: colorAdj, icon: '🎨', source: '📊 Culoare' });
+    }
+    if (colorPerSqm > 0) {
+      colorCostItems.push({ name: `Culoare: ${realColor.name} (per m²)`, cat: 'Culoare', qty: area, unit: 'm²', rate: colorPerSqm, icon: '🎨', source: '📊 Culoare' });
+    }
+  }
+
+  // 6. MATERIAL — price_multiplier din Material entity (aplicat ca ajustare pe total)
+  const materialMultiplier = realMaterial ? (Number(realMaterial.price_multiplier) || 1) : 1;
+
+  // Combine all cost items
+  const hasRealPrices = dbProfilRate > 0 || dbGlassFromGlazing > 0 || dbGlassFromProfile > 0 || dbHardwareFixed > 0 || mechCostItems.length > 0;
+
   const costItems = [
-    { name: 'Profil Ramă (Toc)', cat: 'Profil', qty: mlRama, unit: 'ml', rate: costRates.profil_rama_per_ml, icon: '🪵' },
-    { name: 'Profil Cercevea', cat: 'Profil', qty: mlCercevea, unit: 'ml', rate: costRates.profil_cercevea_per_ml, icon: '🪟' },
-    { name: 'Armătură Oțel', cat: 'Armătură', qty: mlArmatura, unit: 'ml', rate: costRates.armatura_per_ml, icon: '🔩' },
-    { name: 'Baghetă Sticlă', cat: 'Consum', qty: mlBagheta, unit: 'ml', rate: costRates.bagheta_per_ml, icon: '📏' },
-    { name: 'Garnitură EPDM', cat: 'Consum', qty: mlGarnitura, unit: 'ml', rate: costRates.garnitura_per_ml, icon: '〰️' },
-    { name: 'Pachet Termopan', cat: 'Sticlă', qty: mpSticla, unit: 'm²', rate: costRates.sticla_per_mp, icon: '🧊' },
-    { name: 'Feronerie / Canat', cat: 'Feronerie', qty: numSashes, unit: 'buc', rate: isFix ? costRates.feronerie_fix : costRates.feronerie_ob, icon: '🔧' },
-    { name: 'Mâner', cat: 'Feronerie', qty: isFix ? 0 : numSashes, unit: 'buc', rate: costRates.maner_per_buc, icon: '🚪' },
-    { name: 'Balamale', cat: 'Feronerie', qty: isFix ? 0 : numSashes, unit: 'canat', rate: costRates.balamale_per_canat, icon: '🔗' },
-    { name: 'Manoperă Producție', cat: 'Manoperă', qty: area, unit: 'm²', rate: costRates.manopera_per_mp, icon: '👷' },
+    // BOM-level items
+    { name: `Profil Ramă: ${realProfile?.name || '—'}`, cat: 'Profil', qty: mlRama, unit: 'ml', rate: rateProfilRama, icon: '🪵', source: dbProfilRate > 0 ? '📊 Profil' : '⚙️ Manual' },
+    { name: `Profil Cercevea: ${realProfile?.name || '—'}`, cat: 'Profil', qty: mlCercevea, unit: 'ml', rate: rateProfilCercevea, icon: '🪟', source: dbProfilRate > 0 ? '📊 Profil' : '⚙️ Manual' },
+    { name: 'Armătură Oțel', cat: 'Armătură', qty: mlArmatura, unit: 'ml', rate: costRates.armatura_per_ml, icon: '🔩', source: '⚙️ Manual' },
+    { name: 'Baghetă Sticlă', cat: 'Consum', qty: mlBagheta, unit: 'ml', rate: costRates.bagheta_per_ml, icon: '📏', source: '⚙️ Manual' },
+    { name: 'Garnitură EPDM', cat: 'Consum', qty: mlGarnitura, unit: 'ml', rate: costRates.garnitura_per_ml, icon: '〰️', source: '⚙️ Manual' },
+    { name: `Sticlă: ${realGlazing?.name || bomData.glass?.type || '—'}`, cat: 'Sticlă', qty: mpSticla, unit: 'm²', rate: rateSticla, icon: '🧊', source: sticlaSource },
+    // Feronerie fixă din Profile.product_specific_pricing
+    { name: 'Feronerie / Canat', cat: 'Feronerie', qty: numSashes, unit: 'buc', rate: rateFeronerie, icon: '🔧', source: dbHardwareFixed > 0 ? '📊 Profil' : '⚙️ Manual' },
+    { name: 'Mâner', cat: 'Feronerie', qty: isFix ? 0 : numSashes, unit: 'buc', rate: costRates.maner_per_buc, icon: '🚪', source: '⚙️ Manual' },
+    { name: 'Balamale', cat: 'Feronerie', qty: isFix ? 0 : numSashes, unit: 'canat', rate: costRates.balamale_per_canat, icon: '🔗', source: '⚙️ Manual' },
+    // Mecanisme din DB
+    ...mechCostItems,
+    // Culoare din DB
+    ...colorCostItems,
   ];
 
   const validItems = costItems.filter(c => c.qty > 0);
-  const costPerUnit = validItems.reduce((s, c) => s + c.qty * c.rate, 0);
+  let costBaza = validItems.reduce((s, c) => s + c.qty * c.rate, 0);
+
+  // Multiplicator Material (aplicat pe cost baza)
+  const materialAdjustment = materialMultiplier !== 1 ? costBaza * (materialMultiplier - 1) : 0;
+  costBaza += materialAdjustment;
+
+  // Multiplicator Profil (aplicat pe cost baza)
+  const profileMultiplier = realProfile ? (Number(realProfile.price_multiplier) || 1) : 1;
+  const profileAdjustment = profileMultiplier !== 1 ? costBaza * (profileMultiplier - 1) : 0;
+  costBaza += profileAdjustment;
+
+  // ═══ EXTRA COSTS STRATIFICATE ═══
+  const wasteCost = costBaza * (extraCosts.waste_percent / 100);
+  const costAfterWaste = costBaza + wasteCost;
+  const manoperaCost = area * extraCosts.manopera_per_mp;
+  const costBeforeProfit = costAfterWaste + manoperaCost;
+  const profitAmount = costBeforeProfit * (extraCosts.profit_percent / 100);
+  const costPerUnit = costBeforeProfit + profitAmount;
   const costTotal = costPerUnit * activeItem.quantity;
+  const tvaCost = costTotal * (extraCosts.tva_percent / 100);
+  const totalCuTVA = costTotal + tvaCost;
+
   const sellPrice = activeItem.price || 0;
   const margin = sellPrice > 0 ? ((sellPrice - costPerUnit) / sellPrice * 100) : 0;
 
   const catColors = {
-    'Profil': 'text-blue-600',
-    'Armătură': 'text-slate-600',
-    'Consum': 'text-purple-600',
-    'Sticlă': 'text-cyan-600',
-    'Feronerie': 'text-amber-600',
-    'Manoperă': 'text-emerald-600',
+    'Profil': 'text-blue-600', 'Armătură': 'text-slate-600', 'Consum': 'text-purple-600',
+    'Sticlă': 'text-cyan-600', 'Feronerie': 'text-amber-600', 'Culoare': 'text-pink-600',
   };
 
   return (
@@ -360,17 +517,46 @@ function CostAnalysis({ bomData, activeItem, techSettings }) {
         <div>
           <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
             💰 Analiză Cost Producție
+            {hasRealPrices && <span className="text-[10px] font-normal bg-green-100 text-green-700 px-2 py-0.5 rounded-full">📊 Prețuri reale din DB</span>}
           </h3>
-          <p className="text-xs text-slate-500">Breakdown cost pe fiecare componentă minimă</p>
+          <p className="text-xs text-slate-500">Breakdown cost componentă + Extra Costs (pierderi, profit, TVA)</p>
         </div>
-        <button onClick={() => setShowEditor(!showEditor)} className="text-xs text-slate-500 hover:text-blue-600 flex items-center gap-1 bg-slate-100 px-2 py-1 rounded">
-          <Settings className="w-3 h-3" /> Editează Prețuri
-        </button>
+        <div className="flex gap-1">
+          <button onClick={() => setShowExtraCosts(!showExtraCosts)} className="text-xs text-slate-500 hover:text-emerald-600 flex items-center gap-1 bg-emerald-50 px-2 py-1 rounded border border-emerald-200">
+            📊 Extra Costs
+          </button>
+          <button onClick={() => setShowEditor(!showEditor)} className="text-xs text-slate-500 hover:text-blue-600 flex items-center gap-1 bg-slate-100 px-2 py-1 rounded">
+            <Settings className="w-3 h-3" /> Prețuri Manuale
+          </button>
+        </div>
       </div>
 
-      {/* Cost Rates Editor */}
+      {/* Extra Costs Editor */}
+      {showExtraCosts && (
+        <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl p-4 border border-emerald-200">
+          <h4 className="text-xs font-bold text-emerald-700 mb-3 uppercase">⚡ Extra Costs — Pierderi, Profit, TVA</h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { key: 'waste_percent', label: 'Pierderi Material %', icon: '♻️' },
+              { key: 'profit_percent', label: 'Adaos Comercial %', icon: '💰' },
+              { key: 'manopera_per_mp', label: 'Manoperă €/m²', icon: '👷' },
+              { key: 'tva_percent', label: 'TVA %', icon: '🏛️' },
+            ].map(({ key, label, icon }) => (
+              <div key={key} className="flex flex-col gap-0.5">
+                <label className="text-[10px] text-emerald-600 font-bold">{icon} {label}</label>
+                <input type="number" value={extraCosts[key]} step="0.5"
+                  onChange={(e) => saveExtraCosts({ ...extraCosts, [key]: parseFloat(e.target.value) || 0 })}
+                  className="px-2 py-1.5 border border-emerald-200 rounded text-xs font-mono bg-white" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Manual Cost Rates Editor - fallback */}
       {showEditor && (
         <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 grid grid-cols-2 md:grid-cols-3 gap-3">
+          <p className="col-span-full text-[10px] text-slate-400">⚠️ Aceste prețuri sunt folosite doar când nu există preț în baza de date (Profile Manager / Sticlă Manager)</p>
           {Object.entries(costRates).map(([key, val]) => (
             <div key={key} className="flex flex-col gap-0.5">
               <label className="text-[10px] text-slate-400 uppercase">{key.replace(/_/g, ' ')}</label>
@@ -380,26 +566,35 @@ function CostAnalysis({ bomData, activeItem, techSettings }) {
         </div>
       )}
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
-          <p className="text-[10px] text-blue-500 uppercase font-bold">Cost / Unitate</p>
-          <p className="text-2xl font-black text-blue-800 mt-1">{costPerUnit.toFixed(2)} <span className="text-sm font-normal">€</span></p>
+      {/* Summary Cards — 5 KPIs */}
+      <div className="grid grid-cols-5 gap-2">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-3 border border-blue-200">
+          <p className="text-[9px] text-blue-500 uppercase font-bold">Cost Bază</p>
+          <p className="text-lg font-black text-blue-800 mt-0.5">{costBaza.toFixed(2)} <span className="text-[10px] font-normal">€</span></p>
         </div>
-        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-4 border border-emerald-200">
-          <p className="text-[10px] text-emerald-500 uppercase font-bold">Cost Total (×{activeItem.quantity})</p>
-          <p className="text-2xl font-black text-emerald-800 mt-1">{costTotal.toFixed(2)} <span className="text-sm font-normal">€</span></p>
+        <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-3 border border-amber-200">
+          <p className="text-[9px] text-amber-500 uppercase font-bold">+ Extra Costs</p>
+          <p className="text-lg font-black text-amber-800 mt-0.5">{(wasteCost + manoperaCost + profitAmount).toFixed(2)} <span className="text-[10px] font-normal">€</span></p>
+          <p className="text-[9px] text-amber-500">Pierderi {wasteCost.toFixed(1)} + Manop {manoperaCost.toFixed(1)} + Profit {profitAmount.toFixed(1)}</p>
         </div>
-        <div className={`rounded-xl p-4 border ${margin >= 20 ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-200' : margin >= 0 ? 'bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200' : 'bg-gradient-to-br from-red-50 to-red-100 border-red-200'}`}>
-          <p className="text-[10px] uppercase font-bold text-slate-500">Marjă Profit</p>
-          <p className={`text-2xl font-black mt-1 ${margin >= 20 ? 'text-green-800' : margin >= 0 ? 'text-amber-800' : 'text-red-800'}`}>
+        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-3 border border-emerald-200">
+          <p className="text-[9px] text-emerald-500 uppercase font-bold">Cost / Unitate</p>
+          <p className="text-lg font-black text-emerald-800 mt-0.5">{costPerUnit.toFixed(2)} <span className="text-[10px] font-normal">€</span></p>
+        </div>
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-3 border border-purple-200">
+          <p className="text-[9px] text-purple-500 uppercase font-bold">Total cu TVA (×{activeItem.quantity})</p>
+          <p className="text-lg font-black text-purple-800 mt-0.5">{totalCuTVA.toFixed(2)} <span className="text-[10px] font-normal">€</span></p>
+        </div>
+        <div className={`rounded-xl p-3 border ${margin >= 20 ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-200' : margin >= 0 ? 'bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200' : 'bg-gradient-to-br from-red-50 to-red-100 border-red-200'}`}>
+          <p className="text-[9px] uppercase font-bold text-slate-500">Marjă Profit</p>
+          <p className={`text-lg font-black mt-0.5 ${margin >= 20 ? 'text-green-800' : margin >= 0 ? 'text-amber-800' : 'text-red-800'}`}>
             {sellPrice > 0 ? `${margin.toFixed(1)}%` : '—'}
           </p>
-          {sellPrice > 0 && <p className="text-[10px] text-slate-400">Vânzare: {sellPrice.toFixed(2)} €</p>}
+          {sellPrice > 0 && <p className="text-[9px] text-slate-400">Vânzare: {sellPrice.toFixed(2)} €</p>}
         </div>
       </div>
 
-      {/* Detailed Table */}
+      {/* Detailed BOM Cost Table */}
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
@@ -408,6 +603,7 @@ function CostAnalysis({ bomData, activeItem, techSettings }) {
               <th className="px-3 py-2.5 text-center">Categorie</th>
               <th className="px-3 py-2.5 text-right">Cantitate</th>
               <th className="px-3 py-2.5 text-right">Preț Unitar</th>
+              <th className="px-3 py-2.5 text-center">Sursă</th>
               <th className="px-3 py-2.5 rounded-tr-lg text-right font-bold text-emerald-300">Cost Total</th>
             </tr>
           </thead>
@@ -416,16 +612,71 @@ function CostAnalysis({ bomData, activeItem, techSettings }) {
               <tr key={i} className={`hover:bg-blue-50/30 ${i % 2 === 0 ? '' : 'bg-slate-50/30'}`}>
                 <td className="px-3 py-2 font-semibold text-slate-800">{item.icon} {item.name}</td>
                 <td className={`px-3 py-2 text-center font-bold text-[10px] ${catColors[item.cat] || ''}`}>{item.cat}</td>
-                <td className="px-3 py-2 text-right font-mono">{item.qty.toFixed(2)} {item.unit}</td>
+                <td className="px-3 py-2 text-right font-mono">{(typeof item.qty === 'number' ? item.qty : 0).toFixed(2)} {item.unit}</td>
                 <td className="px-3 py-2 text-right font-mono text-slate-500">{item.rate.toFixed(2)} €/{item.unit}</td>
+                <td className="px-3 py-2 text-center text-[10px]">{item.source}</td>
                 <td className="px-3 py-2 text-right font-black text-emerald-700">{(item.qty * item.rate).toFixed(2)} €</td>
               </tr>
             ))}
+            {/* Multiplicatori din DB */}
+            {materialAdjustment !== 0 && (
+              <tr className="bg-indigo-50/50 border-t border-indigo-200">
+                <td className="px-3 py-2 font-semibold text-indigo-800">📐 Multiplicator Material: {realMaterial?.name || '—'}</td>
+                <td className="px-3 py-2 text-center text-[10px] text-indigo-600 font-bold">Ajustare</td>
+                <td className="px-3 py-2 text-right font-mono">×{materialMultiplier.toFixed(2)}</td>
+                <td className="px-3 py-2 text-right font-mono text-slate-500">{((materialMultiplier - 1) * 100).toFixed(0)}%</td>
+                <td className="px-3 py-2 text-center text-[10px]">📊 Material</td>
+                <td className="px-3 py-2 text-right font-black text-indigo-700">{materialAdjustment.toFixed(2)} €</td>
+              </tr>
+            )}
+            {profileAdjustment !== 0 && (
+              <tr className="bg-indigo-50/50">
+                <td className="px-3 py-2 font-semibold text-indigo-800">📐 Multiplicator Profil: {realProfile?.name || '—'}</td>
+                <td className="px-3 py-2 text-center text-[10px] text-indigo-600 font-bold">Ajustare</td>
+                <td className="px-3 py-2 text-right font-mono">×{profileMultiplier.toFixed(2)}</td>
+                <td className="px-3 py-2 text-right font-mono text-slate-500">{((profileMultiplier - 1) * 100).toFixed(0)}%</td>
+                <td className="px-3 py-2 text-center text-[10px]">📊 Profil</td>
+                <td className="px-3 py-2 text-right font-black text-indigo-700">{profileAdjustment.toFixed(2)} €</td>
+              </tr>
+            )}
+            {/* Extra Costs rows */}
+            <tr className="bg-amber-50/50 border-t-2 border-amber-200">
+              <td className="px-3 py-2 font-semibold text-amber-800">♻️ Pierderi Material</td>
+              <td className="px-3 py-2 text-center text-[10px] text-amber-600 font-bold">Extra</td>
+              <td className="px-3 py-2 text-right font-mono">{extraCosts.waste_percent}%</td>
+              <td className="px-3 py-2 text-right font-mono text-slate-500">din {costBaza.toFixed(2)} €</td>
+              <td className="px-3 py-2 text-center text-[10px]">⚙️</td>
+              <td className="px-3 py-2 text-right font-black text-amber-700">{wasteCost.toFixed(2)} €</td>
+            </tr>
+            <tr className="bg-amber-50/50">
+              <td className="px-3 py-2 font-semibold text-amber-800">👷 Manoperă Producție</td>
+              <td className="px-3 py-2 text-center text-[10px] text-amber-600 font-bold">Extra</td>
+              <td className="px-3 py-2 text-right font-mono">{area.toFixed(2)} m²</td>
+              <td className="px-3 py-2 text-right font-mono text-slate-500">{extraCosts.manopera_per_mp.toFixed(2)} €/m²</td>
+              <td className="px-3 py-2 text-center text-[10px]">⚙️</td>
+              <td className="px-3 py-2 text-right font-black text-amber-700">{manoperaCost.toFixed(2)} €</td>
+            </tr>
+            <tr className="bg-amber-50/50">
+              <td className="px-3 py-2 font-semibold text-amber-800">💰 Adaos Comercial</td>
+              <td className="px-3 py-2 text-center text-[10px] text-amber-600 font-bold">Profit</td>
+              <td className="px-3 py-2 text-right font-mono">{extraCosts.profit_percent}%</td>
+              <td className="px-3 py-2 text-right font-mono text-slate-500">din {costBeforeProfit.toFixed(2)} €</td>
+              <td className="px-3 py-2 text-center text-[10px]">⚙️</td>
+              <td className="px-3 py-2 text-right font-black text-amber-700">{profitAmount.toFixed(2)} €</td>
+            </tr>
           </tbody>
           <tfoot>
             <tr className="bg-slate-100 border-t-2 border-slate-300">
-              <td colSpan={4} className="px-3 py-3 text-right font-bold text-slate-600">COST TOTAL / UNITATE</td>
-              <td className="px-3 py-3 text-right font-black text-lg text-emerald-800">{costPerUnit.toFixed(2)} €</td>
+              <td colSpan={5} className="px-3 py-2 text-right font-bold text-slate-600">COST / UNITATE (fără TVA)</td>
+              <td className="px-3 py-2 text-right font-black text-lg text-emerald-800">{costPerUnit.toFixed(2)} €</td>
+            </tr>
+            <tr className="bg-purple-50">
+              <td colSpan={5} className="px-3 py-2 text-right font-bold text-purple-600">+ TVA ({extraCosts.tva_percent}%)</td>
+              <td className="px-3 py-2 text-right font-black text-purple-700">{tvaCost.toFixed(2)} €</td>
+            </tr>
+            <tr className="bg-emerald-100 border-t-2 border-emerald-300">
+              <td colSpan={5} className="px-3 py-3 text-right font-black text-emerald-800 text-sm">TOTAL CU TVA (×{activeItem.quantity})</td>
+              <td className="px-3 py-3 text-right font-black text-xl text-emerald-900">{totalCuTVA.toFixed(2)} €</td>
             </tr>
           </tfoot>
         </table>
@@ -950,7 +1201,7 @@ export default function FactoryManager() {
       const allOrders = await base44.entities.Order.list();
       // Show ALL orders, not just paid+confirmed (so user can see all)
       const factoryOrders = allOrders
-        .sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+        .sort((a, b) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime());
       setOrders(factoryOrders);
     } catch (error) {
       console.error("Error fetching factory orders:", error);

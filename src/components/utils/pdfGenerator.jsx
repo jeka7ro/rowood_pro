@@ -230,7 +230,7 @@ export const generateOrderConfirmationPDF = async (order, cartItems, relatedData
     
     const area = ((config.width || 1200) * (config.height || 1400)) / 1000000; // m² CORECT cu dimensiunile din config
     const itemPrice = item.price || config.calculated_price || 0;
-    const basePrice = itemPrice / 1.19;
+    const basePrice = itemPrice / 1.21;
     
     const calcData = [
       ['Tamplarie', `${area.toFixed(3)} mp`, `${basePrice.toFixed(2)} €`],
@@ -262,7 +262,7 @@ export const generateOrderConfirmationPDF = async (order, cartItems, relatedData
 
   // Total calculations
   const totalAmount = cartItems.reduce((sum, item) => sum + ((item.price || item.configuration?.calculated_price || 0) * (item.quantity || item.configuration?.quantity || 1)), 0);
-  const totalWithoutVat = totalAmount / 1.19;
+  const totalWithoutVat = totalAmount / 1.21;
   const totalVat = totalAmount - totalWithoutVat;
 
   doc.setFillColor(173, 216, 230);
@@ -276,7 +276,7 @@ export const generateOrderConfirmationPDF = async (order, cartItems, relatedData
     ['Valoare', `${totalWithoutVat.toFixed(2)} €`],
     ['Discount', `${(totalWithoutVat * -0.05).toFixed(2)} €`],
     ['Valoare cu Reducere', `${totalWithoutVat.toFixed(2)} €`],
-    ['TVA (19%)', `${totalVat.toFixed(2)} €`],
+    ['TVA (21%)', `${totalVat.toFixed(2)} €`],
     ['Total Oferta', `${totalAmount.toFixed(2)} €`]
   ];
 

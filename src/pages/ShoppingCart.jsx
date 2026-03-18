@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 
 // Cheie unificată de coș — ACEEAȘI indiferent dacă ești logat sau nu
 const CART_KEY = 'rowood_cart';
+import { base44 } from '@/api/base44Client';
 
 // Migrează coșurile vechi (guestCart, cart_email) în cheia unificată
 const migrateOldCartKeys = () => {
@@ -81,7 +82,7 @@ export default function ShoppingCartPage() {
         // Ensure that we only create a new CartItem if the product_id and configuration are not already in the user's cart
         // This is a simplified check, a more robust solution would involve checking for existing items in DB before creating.
         const { id, created_date, ...itemData } = item; // Eliminăm id-ul temporar
-        return await CartItem.create({ ...itemData, created_by: currentUser.email });
+        return await base44.entities.CartItem.create({ ...itemData, created_by: currentUser.email });
       });
       
       const transferredItems = await Promise.all(transferPromises);

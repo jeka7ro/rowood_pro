@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { calculatePrice } from '@/lib/usePricingEngine';
 import { unpackGlazingMeta } from '@/utils/glazingMeta';
 import { base44 } from '@/api/base44Client';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -291,215 +292,31 @@ export default function PriceManagement() {
   }, [config.width, config.height, config.sash_mechanisms, selectedProduct, mechanisms]);
 
   const priceSimulation = useMemo(() => {
-    const width = Number(config.width) || 0;
-    const height = Number(config.height) || 0;
-    const area = (width * height) / 1000000; // m²
-    
-    // Perimetru ramă exterioară (tocul ferestrei)
-    const outerPerimeter = 2 * (width + height) / 1000; // ml
-    
-    // Lățime per canat
-    const sashWidth = width / sashCount;
-    
-    // Perimetru per canat (fiecare geam/ramă interioară)
-    const sashPerimeter = 2 * (sashWidth + height) / 1000; // ml
-    
-    // Perimetru total profil = ramă exterioară + toate ramele interioare (canate)
-    const totalProfilePerimeter = outerPerimeter + (sashPerimeter * sashCount);
-
-    const breakdown = [];
-    let total = 0;
-
-    // Prețuri din PROFILE -> product_specific_pricing (mutat din Material)
-    if (selectedProfile && selectedProduct && Array.isArray(selectedProfile.product_specific_pricing)) {
-      const productPricing = selectedProfile.product_specific_pricing.find(p => p.product_id === selectedProduct.id);
-      if (productPricing) {
-        // Feronerie fixă
-        if (productPricing.hardware_fixed_price > 0) {
-          breakdown.push({
-            category: 'Feronerie',
-            item: 'Cost fix montaj',
-            calc: 'Preț fix',
-            price: productPricing.hardware_fixed_price
-          });
-          total += productPricing.hardware_fixed_price;
-        }
-      }
-    }
-
-    // Profil (per metru liniar) - calculăm corect:
-    // 1x ramă exterioară (toc) + canate × perimetru canat
-    if (selectedProfile && selectedProfile.price_per_linear_meter > 0) {
-      const profileCost = totalProfilePerimeter * selectedProfile.price_per_linear_meter;
-      breakdown.push({
-        category: 'Profil',
-        item: selectedProfile.name,
-        calc: `Ramă ext: ${outerPerimeter.toFixed(2)} ml + ${sashCount} canate × ${sashPerimeter.toFixed(2)} ml = ${totalProfilePerimeter.toFixed(2)} ml × ${selectedProfile.price_per_linear_meter} €/ml`,
-        price: profileCost
-      });
-      total += profileCost;
-    }
-
-    // Sticlă (per m²) - din GlazingType, cu ajustare per canat din mecanisme
-    if (selectedGlazing && selectedGlazing.price_per_sqm > 0) {
-      // Suprafața per canat
-      const areaPerSash = (sashWidth * height) / 1000000; // m² per canat
-      
-      let totalAdjustedArea = 0;
-      let glazingCalcDetails = [];
-      
-      // Calculează pentru fiecare canat separat
-      for (let i = 0; i < sashCount; i++) {
-        const mechId = config.sash_mechanisms[i];
-        const mech = mechId ? mechanisms.find(m => m.id === mechId) : null;
-        const adjustmentPercent = Number(mech?.glass_area_adjustment_percent) || 0;
-        
-        const adjustedSashArea = areaPerSash * (1 - adjustmentPercent / 100);
-        totalAdjustedArea += adjustedSashArea;
-        
-        if (adjustmentPercent > 0) {
-          glazingCalcDetails.push(`C${i+1}: ${areaPerSash.toFixed(2)} - ${adjustmentPercent}% = ${adjustedSashArea.toFixed(2)}`);
-        } else {
-          glazingCalcDetails.push(`C${i+1}: ${areaPerSash.toFixed(2)}`);
-        }
-      }
-      
-      const totalGlazingCost = totalAdjustedArea * selectedGlazing.price_per_sqm;
-      
-      breakdown.push({
-        category: 'Tip Sticlă',
-        item: selectedGlazing.name,
-        calc: `(${glazingCalcDetails.join(' + ')}) = ${totalAdjustedArea.toFixed(2)} m² × ${selectedGlazing.price_per_sqm} €/m²`,
-        price: totalGlazingCost
-      });
-      total += totalGlazingCost;
-    }
-
-    // Culoare (ajustare)
-    if (selectedColor) {
-      if (selectedColor.price_adjustment > 0) {
-        breakdown.push({
-          category: 'Culoare',
-          item: selectedColor.name,
-          calc: 'Ajustare fixă',
-          price: selectedColor.price_adjustment
-        });
-        total += selectedColor.price_adjustment;
-      }
-      if (selectedColor.price_per_sqm > 0) {
-        const colorCost = area * selectedColor.price_per_sqm;
-        breakdown.push({
-          category: 'Culoare',
-          item: `${selectedColor.name} (per m²)`,
-          calc: `${area.toFixed(2)} m² × ${selectedColor.price_per_sqm} €/m²`,
-          price: colorCost
-        });
-        total += colorCost;
-      }
-    }
-
-    // Multiplicator profil
-    if (selectedProfile && selectedProfile.price_multiplier && selectedProfile.price_multiplier !== 1) {
-      const adjustment = total * (selectedProfile.price_multiplier - 1);
-      breakdown.push({
-        category: 'Ajustare Profil',
-        item: `${selectedProfile.name} (${((selectedProfile.price_multiplier - 1) * 100).toFixed(0)}%)`,
-        calc: 'Multiplicator',
-        price: adjustment
-      });
-      total += adjustment;
-    }
-
-    // Multiplicator material
-    if (selectedMaterial && selectedMaterial.price_multiplier && selectedMaterial.price_multiplier !== 1) {
-      const adjustment = total * (selectedMaterial.price_multiplier - 1);
-      breakdown.push({
-        category: 'Ajustare Material',
-        item: `${selectedMaterial.name} (${((selectedMaterial.price_multiplier - 1) * 100).toFixed(0)}%)`,
-        calc: 'Multiplicator',
-        price: adjustment
-      });
-      total += adjustment;
-    }
-
-    // Mecanisme - calculează prețul pentru fiecare canat
-    if (selectedProfile && selectedProduct) {
-      const productPricing = selectedProfile.product_specific_pricing?.find(p => p.product_id === selectedProduct.id);
-      
-      config.sash_mechanisms.forEach((mechId, sashIndex) => {
-        if (!mechId) return;
-        
-        const mech = mechanisms.find(m => m.id === mechId);
-        if (!mech) return;
-        
-        const mechHeightPricing = productPricing?.mechanism_height_pricing?.[mech.code];
-        
-        if (mechHeightPricing?.length > 0) {
-          // Găsește intervalul corect bazat pe înălțime
-          const matchingRange = mechHeightPricing
-            .sort((a, b) => a.max_height - b.max_height)
-            .find(range => height >= (range.min_height || 0) && height <= range.max_height);
-
-          if (matchingRange && matchingRange.price_per_piece > 0) {
-            breakdown.push({
-              category: `Mecanism Canat ${sashIndex + 1}`,
-              item: `${mech.name} (${matchingRange.min_height || 0}-${matchingRange.max_height}mm)`,
-              calc: `${matchingRange.price_per_piece} €/canat`,
-              price: matchingRange.price_per_piece
-            });
-            total += matchingRange.price_per_piece;
-          }
-        } else if (mech.height_price_grid?.length > 0) {
-          // Fallback la grila din mecanism
-          const gridItem = mech.height_price_grid.find(g => height <= g.max_height);
-          if (gridItem && gridItem.price > 0) {
-            breakdown.push({
-              category: `Mecanism Canat ${sashIndex + 1}`,
-              item: `${mech.name} (grilă înălțime)`,
-              calc: `Până la ${gridItem.max_height}mm`,
-              price: gridItem.price
-            });
-            total += gridItem.price;
-          }
-        } else {
-          // Fallback la preț per bucată / metru liniar
-          if (mech.price_per_piece > 0) {
-            breakdown.push({
-              category: `Mecanism Canat ${sashIndex + 1}`,
-              item: mech.name,
-              calc: 'Preț per bucată',
-              price: mech.price_per_piece
-            });
-            total += mech.price_per_piece;
-          }
-          if (mech.price_per_linear_meter > 0) {
-            const mechCost = sashPerimeter * mech.price_per_linear_meter;
-            breakdown.push({
-              category: `Mecanism Canat ${sashIndex + 1}`,
-              item: `${mech.name} (per ml)`,
-              calc: `${sashPerimeter.toFixed(2)} ml × ${mech.price_per_linear_meter} €/ml`,
-              price: mechCost
-            });
-            total += mechCost;
-          }
-        }
-      });
-    }
-
-    const tva = total * 0.21;
-    const totalWithTva = total + tva;
+    const result = calculatePrice({
+      width: config.width,
+      height: config.height,
+      quantity: 1,
+      product: selectedProduct,
+      profile: selectedProfile,
+      glazingType: selectedGlazing,
+      color: selectedColor,
+      material: selectedMaterial,
+      sashMechanisms: config.sash_mechanisms || [],
+      mechanisms,
+      extraCosts: null, // Bon Consum uses its own TVA (21%)
+    });
 
     return { 
-      breakdown, 
-      subtotal: total, 
-      tva, 
-      total: totalWithTva, 
-      area, 
-      outerPerimeter,
-      sashPerimeter,
-      totalProfilePerimeter,
-      sashWidth,
-      sashCount 
+      breakdown: result.breakdown, 
+      subtotal: result.costBaza, 
+      tva: result.costBaza * 0.21, 
+      total: result.costBaza * 1.21, 
+      area: result.geometrie.area, 
+      outerPerimeter: result.geometrie.outerPerimeter,
+      sashPerimeter: result.geometrie.sashPerimeter,
+      totalProfilePerimeter: result.geometrie.totalProfilePerimeter,
+      sashWidth: result.geometrie.sashWidth,
+      sashCount: result.geometrie.sashCount 
     };
   }, [config, selectedProduct, selectedMaterial, selectedProfile, selectedColor, selectedGlazing, sashCount, mechanisms]);
 

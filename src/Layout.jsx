@@ -8,10 +8,12 @@ import CookieConsent from "@/components/common/CookieConsent";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import tracker from "@/components/tracking/ActivityTracker";
 import {
-  Home, Settings, Package, Palette, Layers, ShoppingCart, Users,
-  BarChart3, Menu, X, Wrench, FileText, Scaling, Sprout, Users2,
-  Briefcase, CalendarCheck, Building2, Target, LogIn, LogOut, ExternalLink, Percent, CreditCard,
-  Users as UsersIcon, History as HistoryIcon, ScrollText, TrendingUp, Factory,
+  Sun, Moon, Home, Package, Settings, LogOut, Search,
+  ClipboardList, BarChart3, Shield, Palette, ShoppingCart, Users2,
+  Menu, X, Target, Briefcase, CalendarCheck, Building2, Layers,
+  Factory, TrendingUp, Megaphone, Calculator, ExternalLink, Percent, CreditCard, Coins,
+  Users as UsersIcon, History as HistoryIcon, ScrollText,
+  Sprout, Wrench, Scaling, FileText, LogIn, Users,
 } from "lucide-react";
 import {
   Sheet,
@@ -42,7 +44,7 @@ function LayoutContent({ children, currentPageName }) {
   const [isCheckingUser, setIsCheckingUser] = useState(true);
   const [footerContent, setFooterContent] = useState(null);
 
-  const isAdminPage = currentPageName?.includes('Admin') || currentPageName?.includes('Manager') || currentPageName?.includes('Content') || currentPageName?.includes('CRM') || currentPageName === 'Analytics' || currentPageName === 'PriceManagement';
+  const isAdminPage = currentPageName?.includes('Admin') || currentPageName?.includes('Manager') || currentPageName?.includes('Content') || currentPageName?.includes('CRM') || currentPageName === 'Analytics' || currentPageName === 'PriceManagement' || currentPageName === 'PricingCenter' || currentPageName === 'CostAnalysisPage';
 
   // MOBILE FIX - Prevent zoom and improve touch experience
   useEffect(() => {
@@ -151,6 +153,8 @@ function LayoutContent({ children, currentPageName }) {
       { title: "Analytics & Tracking", url: createPageUrl("Analytics"), icon: TrendingUp },
       { title: "Producție", url: "", icon: Factory, isSection: true },
       { title: "Manager Fabrică", url: createPageUrl("FactoryManager"), icon: Factory },
+      { title: "Centru Prețuri", url: createPageUrl("PricingCenter"), icon: Coins },
+      { title: "Analiză Cost", url: createPageUrl("CostAnalysisPage"), icon: Calculator },
       { title: "Comenzi", url: createPageUrl("OrderManager"), icon: ShoppingCart },
       { title: "Feronerie & Culori", url: createPageUrl("HardwareManager"), icon: Palette },
       { title: "Gestiune Stocuri", url: createPageUrl("InventoryManager"), icon: Package },

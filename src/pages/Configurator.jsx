@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { calculatePrice } from '@/lib/usePricingEngine';
 import { base44 } from '@/api/base44Client';
 import ConfiguratorImageGenerator from '@/components/configurator/ConfiguratorImageGenerator';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -296,207 +297,53 @@ export default function ConfiguratorPage() {
   const priceDetails = useMemo(() => {
     const product = selectedProduct;
     const material = selectedMaterial;
-    const subMaterial = selectedSubMaterial;
+    const subMat = selectedSubMaterial;
     const profile = selectedProfile;
-    const color = selectedColor;
+    const clr = selectedColor;
     const glazing = selectedGlazing;
     const selectedAccessoriesList = accessories.filter((acc) => (config.accessories || []).includes(acc.id));
 
     if (!product || !material) return { total: 0, totalWithoutTva: 0, tva: 0, breakdown: [], area: 0 };
 
-    let totalWithoutTva = 0;
-    const breakdown = [];
-
-    const widthNum = Number(config.width) || 0;
-    const heightNum = Number(config.height) || 0;
-    const totalArea = widthNum * heightNum / 1000000;
-    const sashCount = product.sashes || 1;
-    const sashWidth = widthNum / sashCount;
-
-    // Perimetru ramă exterioară
-    const outerPerimeter = 2 * (widthNum + heightNum) / 1000; // ml
-    // Perimetru per canat
-    const sashPerimeter = 2 * (sashWidth + heightNum) / 1000; // ml
-    // Total perimetru profil
-    const totalProfilePerimeter = outerPerimeter + (sashPerimeter * sashCount);
-
-    let hardwareFixedPrice = 0;
-    let mechanismHeightPricing = {};
-
-    // Prețurile vin din PROFILE -> product_specific_pricing
-    if (profile && Array.isArray(profile.product_specific_pricing) && product) {
-      const productSpecificPrice = profile.product_specific_pricing.find((p) => p.product_id === product.id);
-      if (productSpecificPrice) {
-        hardwareFixedPrice = Number(productSpecificPrice.hardware_fixed_price) || 0;
-        mechanismHeightPricing = productSpecificPrice.mechanism_height_pricing || {};
-      }
-    }
-
-    // 1. FERONERIE FIXĂ (primul, ca în simulator)
-    if (hardwareFixedPrice > 0) {
-      breakdown.push({
-        label: 'Feronerie/Montaj',
-        value: hardwareFixedPrice,
-        description: 'Cost fix per produs'
-      });
-      totalWithoutTva += hardwareFixedPrice;
-    }
-
-    // 2. PROFIL - calculat pe baza price_per_linear_meter din Profile
-    if (profile && Number(profile.price_per_linear_meter) > 0) {
-      const profileCost = totalProfilePerimeter * Number(profile.price_per_linear_meter);
-      breakdown.push({
-        label: `Profil ${profile.name}`,
-        value: profileCost,
-        description: `${totalProfilePerimeter.toFixed(2)} ml × ${profile.price_per_linear_meter} €/ml`
-      });
-      totalWithoutTva += profileCost;
-    }
-
-    // 3. STICLĂ - din GlazingType (ca în simulator)
-    if (glazing && Number(glazing.price_per_sqm) > 0) {
-      const glazingCost = totalArea * Number(glazing.price_per_sqm);
-      breakdown.push({
-        label: `Sticlă ${glazing.name}`,
-        value: glazingCost,
-        description: `${totalArea.toFixed(2)} m² × ${glazing.price_per_sqm} €/m²`
-      });
-      totalWithoutTva += glazingCost;
-    }
-
-    // 4. Culoare (înainte de multiplicatori, ca în simulator)
+    // Custom color rule lookup
     const customColorRule = (() => {
       if (config.custom_hex_code) return colors.find(c => c.special_type === 'custom_hex');
       if (config.custom_ral_code) return colors.find(c => c.special_type === 'custom_ral');
       return null;
     })();
 
-    if (color) {
-      if (Number(color.price_adjustment) > 0) {
-        breakdown.push({ label: `Culoare ${color.name}`, value: Number(color.price_adjustment), description: 'Ajustare fixă' });
-        totalWithoutTva += Number(color.price_adjustment);
-      }
-      if (Number(color.price_per_sqm) > 0) {
-        const colorAreaCost = Number(color.price_per_sqm) * totalArea;
-        breakdown.push({ label: `Culoare ${color.name} (per m²)`, value: colorAreaCost, description: `${totalArea.toFixed(2)} m² × ${color.price_per_sqm} €/m²` });
-        totalWithoutTva += colorAreaCost;
-      }
-    } else if (customColorRule) {
-      if (Number(customColorRule.price_adjustment) > 0) totalWithoutTva += Number(customColorRule.price_adjustment);
-      if (Number(customColorRule.price_per_sqm) > 0) totalWithoutTva += Number(customColorRule.price_per_sqm) * totalArea;
-    }
-
-    // 5. Multiplicator profil (ca în simulator)
-    if (profile && Number(profile.price_multiplier) && Number(profile.price_multiplier) !== 1) {
-      const profileAdjustment = totalWithoutTva * (Number(profile.price_multiplier) - 1);
-      breakdown.push({
-        label: `Ajustare profil ${profile.name}`,
-        value: profileAdjustment,
-        description: `${(((Number(profile.price_multiplier) - 1) * 100) || 0).toFixed(0)}%`
-      });
-      totalWithoutTva += profileAdjustment;
-    }
-
-    // 6. Multiplicator material (ca în simulator)
-    if (Number(material.price_multiplier) && Number(material.price_multiplier) !== 1) {
-      const matAdjustment = totalWithoutTva * (Number(material.price_multiplier) - 1);
-      breakdown.push({
-        label: `Ajustare material ${material.name}`,
-        value: matAdjustment,
-        description: `${(((Number(material.price_multiplier) - 1) * 100) || 0).toFixed(0)}%`
-      });
-      totalWithoutTva += matAdjustment;
-    }
-
-    // 7. MECANISME - calculăm prețul pentru fiecare canat bazat pe înălțime (ca în simulator)
-    if (Array.isArray(config.sash_configs) && config.sash_configs.length > 0) {
-      config.sash_configs.forEach((sashConfig, sashIndex) => {
-        const mechType = sashConfig?.type || 'fix';
-        const mechHeightRanges = mechanismHeightPricing[mechType];
-        
-        if (mechHeightRanges && Array.isArray(mechHeightRanges) && mechHeightRanges.length > 0) {
-          // Găsește intervalul corect bazat pe înălțime
-          const matchingRange = mechHeightRanges
-            .sort((a, b) => (a.max_height || 0) - (b.max_height || 0))
-            .find(range => heightNum >= (range.min_height || 0) && heightNum <= (range.max_height || 9999));
-
-          if (matchingRange && matchingRange.price_per_piece > 0) {
-            breakdown.push({
-              label: `Mecanism Canat ${sashIndex + 1} (${mechType})`,
-              value: matchingRange.price_per_piece,
-              description: `Înălțime ${matchingRange.min_height || 0}-${matchingRange.max_height}mm`
-            });
-            totalWithoutTva += matchingRange.price_per_piece;
-          }
-        }
-      });
-    }
-
-    // 8. Sub-material multiplier
-    if (subMaterial && Number(subMaterial.price_multiplier) !== 1) {
-      const adjustment = totalWithoutTva * (Number(subMaterial.price_multiplier) - 1);
-      breakdown.push({
-        label: `Ajustare ${subMaterial.name}`,
-        value: adjustment,
-        description: `${(((Number(subMaterial.price_multiplier) - 1) * 100) || 0).toFixed(1)}% din preț`
-      });
-      totalWithoutTva += adjustment;
-    }
-
-    // 9. Multiplicator culoare (aplicat la final, dacă există)
-    if (color && Number(color.price_multiplier) !== 1) {
-      const colorMultAdjustment = totalWithoutTva * (Number(color.price_multiplier) - 1);
-      breakdown.push({
-        label: `Multiplicator culoare ${color.name}`,
-        value: colorMultAdjustment,
-        description: `${(((Number(color.price_multiplier) - 1) * 100) || 0).toFixed(0)}%`
-      });
-      totalWithoutTva += colorMultAdjustment;
-    } else if (customColorRule && Number(customColorRule.price_multiplier) !== 1) {
-      totalWithoutTva += totalWithoutTva * (Number(customColorRule.price_multiplier) - 1);
-    }
-
-    // 10. Accesorii
-    selectedAccessoriesList.forEach((accessory) => {
-      breakdown.push({ label: accessory.name, value: Number(accessory.price) || 0, description: 'Accesoriu' });
-      totalWithoutTva += Number(accessory.price) || 0;
+    const result = calculatePrice({
+      width: config.width,
+      height: config.height,
+      quantity: config.quantity || 1,
+      product,
+      profile,
+      glazingType: glazing,
+      color: clr,
+      material,
+      subMaterial: subMat,
+      customColorRule,
+      sashConfigs: config.sash_configs || [],
+      mechanisms: [],
+      accessories: selectedAccessoriesList,
+      transportConfig: config.include_transport ? { include: true, country: config.delivery_country || 'RO' } : null,
+      installConfig: config.include_installation && config.delivery_country === 'RO' ? { include: true } : null,
+      extraCosts: null, // Configurator does NOT apply extra costs
     });
 
-    // 11. TRANSPORT
-    if (config.include_transport && material && product) {
-      const productPricing = material.product_specific_pricing?.find(p => p.product_id === product.id);
-      if (productPricing) {
-        const pricePerSqm = config.delivery_country === 'RO'
-          ? Number(productPricing.transport_ro_price_per_sqm) || 0
-          : Number(productPricing.transport_external_price_per_sqm) || 0;
-        const transportCost = totalArea * pricePerSqm;
-        if (transportCost > 0) {
-          breakdown.push({ label: 'Transport', value: transportCost, description: `${totalArea.toFixed(2)} m² × ${pricePerSqm} €/m²` });
-          totalWithoutTva += transportCost;
-        }
-      }
-    }
-
-    // 12. MONTAJ PROFESIONAL
-    if (config.include_installation && config.delivery_country === 'RO' && material && product) {
-      const productPricing = material.product_specific_pricing?.find(p => p.product_id === product.id);
-      const installPrice = Number(productPricing?.installation_price) || Number(productPricing?.hardware_fixed_price) || 0;
-      if (installPrice > 0) {
-        breakdown.push({ label: 'Montaj Profesional', value: installPrice, description: 'Montaj în România' });
-        totalWithoutTva += installPrice;
-      }
-    }
-
-    const finalTotalWithoutTva = totalWithoutTva * (Number(config.quantity) || 1);
-    const vatAmount = finalTotalWithoutTva * 0.21;
-    const finalTotal = finalTotalWithoutTva + vatAmount;
+    // Map engine output to existing Configurator shape
+    const breakdown = result.breakdown.map(b => ({
+      label: b.item,
+      value: b.price,
+      description: b.calc
+    }));
 
     return {
-      total: finalTotal,
-      totalWithoutTva: finalTotalWithoutTva,
-      tva: vatAmount,
+      total: result.total,
+      totalWithoutTva: result.subtotal,
+      tva: result.tva,
       breakdown,
-      area: totalArea
+      area: result.geometrie.area
     };
   }, [config, accessories, selectedProduct, selectedMaterial, selectedSubMaterial, selectedProfile, selectedColor, selectedGlazing, colors, glazingTypes]);
 
