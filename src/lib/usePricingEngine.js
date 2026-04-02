@@ -237,19 +237,21 @@ export function calculatePrice({
     };
   }
 
-  // ═══ GEOMETRIE ═══
+  // ═══ GEOMETRIE DE BAZĂ ═══
   const area = (w * h) / 1_000_000;  // m²
   const sashCount = product.sashes || 1;
   const sashWidth = w / sashCount;
-  const outerPerimeter = 2 * (w + h) / 1000;           // ml
-  const sashPerimeter = 2 * (sashWidth + h) / 1000;     // ml
-  const totalProfilePerimeter = outerPerimeter + (sashPerimeter * sashCount);
+  const outerPerimeter = 2 * (w + h) / 1000;           // ml estimare brută pentru legacy fallback
+  const sashPerimeter = 2 * (sashWidth + h) / 1000;
+
+  // ═══ BON DE CONSUM (Source of Truth) ═══
+  // Calculăm cantitățile REALE matematic (K1, K2, CFI deduse exact)
+  const bonConsum = calculateBonConsum(w, h, sashCount);
+
+  // Folosim metrajul EXACt de profil calculat anterior pentru a reflecta prețul real
+  const totalProfilePerimeter = bonConsum.toc_total + bonConsum.CF + bonConsum.CFI + bonConsum.masca;
 
   const geometrie = { area, outerPerimeter, sashPerimeter, totalProfilePerimeter, sashWidth, sashCount };
-
-  // ═══ BON DE CONSUM ═══
-  // Calculăm cantitățile reale de materiale (Ra Workshop compatible)
-  const bonConsum = calculateBonConsum(w, h, sashCount);
 
   // ═══ PRODUCT SPECIFIC PRICING ═══
   let productPricing = null;
@@ -273,10 +275,12 @@ export function calculatePrice({
   // ─── 2. PROFIL (per metru liniar) ───
   const profilePPM = Number(profile?.price_per_linear_meter) || 0;
   if (profilePPM > 0) {
+    // Calculăm pe baza cantității de profil din bonul de consum (fără pierderile din fabrică, ci pe elementul finit)
+    // Astfel încât prețul către client să urmeze algebra perfectă a ferestrei
     const profileCost = totalProfilePerimeter * profilePPM;
     breakdown.push({
       category: 'Profil', item: profile.name,
-      calc: `Ramă ${outerPerimeter.toFixed(2)} + ${sashCount}×${sashPerimeter.toFixed(2)} = ${totalProfilePerimeter.toFixed(2)} ml × ${profilePPM} €/ml`,
+      calc: `Metraj exact (din bon consum) = ${totalProfilePerimeter.toFixed(2)} ml × ${profilePPM} €/ml`,
       price: profileCost, type: 'profile'
     });
     runningTotal += profileCost;
